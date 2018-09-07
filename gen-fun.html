@@ -3,8 +3,19 @@
     <head>
         <meta charset="UTF-8"/>
         <title>Document</title>
+        <style>
+            the-name {font-weight: bold}
+            the-address {font-style: italic}
+        </style>
     </head>
     <body>
-        <script src="./genfuns.js"></script>
+        <section class="root">
+            <the-name></the-name>
+            <the-address></the-address>
+        </section>
+        <script>var exports = {};</script>
+        <script src="./dist/genfuns.js"></script>
+        <script src="./dist/genfun_formatter.js"></script>
+        <script src="./dist/main.js"></script>
     </body>
 </html>
