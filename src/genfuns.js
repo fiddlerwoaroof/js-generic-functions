@@ -1,7 +1,15 @@
+export function NoNextMethodError() {}
+NoNextMethodError.prototype = Object.create(Error);
+
+export function NoApplicableMethodError() {}
+NoNextMethodError.prototype = Object.create(Error);
+
+export function NoPrimaryMethodError() {}
+NoPrimaryMethodError.prototype = Object.create(NoApplicableMethodError);
+
 const before_qualifier = Symbol.for('before');
 const after_qualifier = Symbol.for('after');
 const around_qualifier = Symbol.for('around');
-
 
 let genfun_prototype = {
     name: "(placeholder)",
@@ -61,7 +69,7 @@ let method_prototype = {
     generic_function: {},
 };
 
-function StandardMethod(
+export function StandardMethod(
     lambda_list, qualifiers, specializers, body
 ) {
     if (! (this instanceof StandardMethod) ) {
@@ -97,7 +105,7 @@ function apply_generic_function(gf, args) {
     let applicable_methods =
         compute_applicable_methods_using_classes(gf, required_portion(args));
     if (applicable_methods.length === 0) {
-        throw new Error(`no applicable methods for gf ${gf.name} with args ${JSON.stringify(args)}`);
+        throw new NoApplicableMethodError(`no applicable methods for gf ${gf.name} with args ${JSON.stringify(args)}`);
     } else {
         return apply_methods(gf, args, applicable_methods);
     }
@@ -107,30 +115,83 @@ function method_more_specific_p(m1, m2, required_classes) {
     const m1specializers = m1.specializers;
     const m2specializers = m2.specializers;
 
+    let result = null;
     for (let [spec1, spec2] of m1specializers.map((el, idx) => [el, m2specializers[idx]])) {
         if (spec1 !== spec2) {
-            return sub_specializer_p(spec1, spec2);
+            result = sub_specializer_p(spec1, spec2);
+            break;
         }
     }
+
+    return result;
 }
 
-function sub_specializer_p(c1, c2) {
-    return c1.isPrototypeOf(c2);
+export function sub_specializer_p(c1, c2) {
+    let result = false;
+    if (c1 instanceof Specializer) {
+        result = c1.super_of(c2);
+    } else if (c1.prototype !== undefined && c2.prototype !== undefined) {
+        result = Object.isPrototypeOf.call(c1.prototype, c2.prototype);
+    }
+    return result;
 }
 
 const idS = Symbol.for('id');
 Object.prototype[idS] = function () { return this };
 
-export function matchesSpecializer(obj, specializer) {
-    let result = obj === specializer.prototype;
-    let objType = typeof obj;
+export function Specializer() {}
+Specializer.prototype = {
+    matches(obj) { return false; },
+    super_of(obj) { return false; },
+}
 
-    if (!result && objType === 'object') {
-        result = Object.isPrototypeOf.call(specializer.prototype, obj);
-    } else if (objType === 'number') {
-        result = matchesSpecializer(Number.prototype, specializer) || matchesSpecializer(specializer.prototype, Number);
-    } else if (objType === 'string') {
-        result = matchesSpecializer(String.prototype, specializer) || matchesSpecializer(specializer.prototype, String);
+function isSuperset(superset, subset) {
+    return Array.from(subset).every(superset.has.bind(superset));
+}
+
+export function Shape(...keys) {
+    if (! (this instanceof Shape) ) {
+        return new Shape(...keys);
+    }
+    this.keys = new Set(keys);
+}
+Shape.prototype = Object.assign(new Specializer(), {
+    matches(obj) {
+        return Array.from(this.keys).every(key => obj[key] !== undefined);
+    },
+    super_of(spec) {
+        // this is the super of spec
+        //     if this.keys is a subset of spec.keys
+        // and if this.keys != spec.keys
+
+        if (!(spec instanceof Shape)) {
+            return false;
+        }
+
+        let this_keys_subset_of_spec_keys = isSuperset(spec.keys, this.keys);
+        let not_eq = this.keys.size !== spec.keys.size;
+
+        return this_keys_subset_of_spec_keys && not_eq;
+    }
+});
+
+export function matches_specializer(obj, specializer) {
+    let objType = typeof obj;
+    let specializer_proto = specializer && specializer.prototype
+    let result = obj === specializer_proto;
+
+    if (obj === null && obj === specializer) {
+        result = true;
+    } else if (specializer && specializer.prototype !== undefined) {
+        if (!result && objType === 'object') {
+            result = Object.isPrototypeOf.call(specializer_proto, obj);
+        } else if (objType === 'number') {
+            result = matches_specializer(Number.prototype, specializer) || matches_specializer(specializer_proto, Number);
+        } else if (objType === 'string') {
+            result = matches_specializer(String.prototype, specializer) || matches_specializer(specializer_proto, String);
+        }
+    } else if (specializer instanceof Specializer) {
+        result = specializer.matches(obj);
     }
 
     return result;
@@ -139,17 +200,20 @@ export function matchesSpecializer(obj, specializer) {
 
 function compute_applicable_methods_using_classes(gf, required_classes) {
     const applicable_methods = gf.methods.filter(
-        method => method.specializers.every((specializer, idx) => matchesSpecializer(required_classes[idx], specializer))
+        method => method.specializers.every((specializer, idx) => matches_specializer(required_classes[idx], specializer))
+        
     );
 
     applicable_methods.sort((a,b) => {
+        let result = 0;
         if (method_more_specific_p(a,b)) {
-            return 1;
+            result = 1;
         }
         if (method_more_specific_p(b,a)) {
-            return -1;
+            result = -1;
         }
-        return 0;
+
+        return result;
     })
 
     return applicable_methods;
@@ -170,6 +234,19 @@ function arr_eq(a1, a2) {
             }
         }
         return true;
+    }
+}
+
+function set_eq(a1, a2) {
+    if (a1.length !== a2.length) {
+        return false;
+    } else {
+        let result = true;
+        for (let elem of a1) {
+            result = result && a2.has(elem);
+            if (!result) break;
+        }
+        return result;
     }
 }
 
@@ -196,7 +273,7 @@ function apply_methods(gf, args, applicable_methods) {
     const main_call = Object.defineProperty(
         function() {
             if (primaries.length === 0) {
-                throw new Error(`No primary method for ${gf.name}`);
+                throw new NoPrimaryMethodError(`No primary method for ${gf.name}`);
             }
 
             for (let before of befores) {
@@ -227,15 +304,16 @@ function apply_method(method, args, next_methods) {
     const method_context = {
         call_next_method(...cnm_args) {
             if (next_methods.length === 0) {
-                throw new Error(`no next method for genfun ${method.generic_function.name}`);
+                throw new NoNextMethodError(`no next method for genfun ${method.generic_function.name}`);
             }
 
             return method instanceof WrappedMethod
                 ? method.continuation()
                 : apply_methods(method.generic_function, cnm_args.length > 0 ? cnm_args : args, next_methods);
         },
+
         get next_method_p() {
-            return next_methods.length === 0
+            return next_methods.length !== 0
         }
     };
 
