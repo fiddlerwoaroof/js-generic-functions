@@ -1,0 +1,13 @@
+* What is this?
+
+An implementation of generic functions based on CLOS and the protocols
+defined in the Art of the Metaobject protocol, adapted for JS.  These
+adaptations include using the prototype chain instead of classes and
+additionally providing extensible specializers (as in
+https://github.com/sbcl/specializable). For the moment, this is only
+used to provide a Shape specializer, as the details of the interaction
+between such specializers and subtyping are an open question.
+
+* Use examples:
+
+** A React Component 

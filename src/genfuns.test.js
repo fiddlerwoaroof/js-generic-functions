@@ -229,6 +229,30 @@ describe('custom specializers', () => {
                .primary([Object], _ => null)
                .fn({a:1}))
             .toEqual(null);
+
+        expect(uut.defgeneric("foobar", "a")
+               .primary([uut.Shape(['a', 1], 'b')], ({a,b}) => a+b)
+               .primary([Object], _ => null)
+               .fn({a:1, b: 3}))
+            .toEqual(4);
+
+        expect(uut.defgeneric("foobar", "a")
+               .primary([uut.Shape(['a', null], 'b')], ({a,b}) => b)
+               .primary([Object], _ => null)
+               .fn({a:null, b: 3}))
+            .toEqual(3);
+
+        expect(uut.defgeneric("foobar", "a")
+            .primary([uut.Shape(['a', undefined], 'b')], ({ a, b }) => b)
+            .primary([Object], _ => null)
+            .fn({ b: 5 }))
+            .toEqual(null); //undefined is not a permissible default: treated as if the key is missing
+
+        expect(uut.defgeneric("foobar", "a")
+               .primary([uut.Shape(['a', 1], 'b')], ({a,b}) => a+b)
+               .primary([Object], _ => null)
+               .fn({a:2, b: 3}))
+            .toEqual(null);
     });
 
     test('Shape, prototype precedence', () => {
@@ -248,12 +272,12 @@ describe('custom specializers', () => {
         const Foo = function () {}
         Foo.prototype = {a: true, b: null};
         expect(uut.defgeneric("foobar", "a")
-               .primary([uut.Shape('a')], function ({a}) { return 'a'; })
+               .primary([uut.Shape('a')], function ({a}) { return `a${this.call_next_method()}`; })
                .primary([uut.Shape('a', 'b', 'c')], function ({a,b,c}) { return `c${this.call_next_method()}`; })
                .primary([uut.Shape('a', 'b')], function ({a,b}) { return `b${this.call_next_method()}`; })
-               .primary([Object], _ => null)
+               .primary([Object], _ => 'd')
                .fn(Object.assign(new Foo(), {c: 3})))
-            .toEqual('cba');
+            .toEqual('cbad');
     });
 });
 
@@ -262,6 +286,7 @@ describe("Shape", () => {
         expect(uut.Shape().super_of(uut.Shape("a", "b", "c"))).toBeTruthy();
         expect(uut.Shape('a').super_of(uut.Shape('a', 'b'))).toBeTruthy();
         expect(uut.Shape("a", "b").super_of(uut.Shape("a", "b", "c"))).toBeTruthy();
+        expect(uut.Shape("a", "b").super_of(uut.Shape("a", "b", 3))).toBeTruthy();
         expect(uut.Shape("a", "b").super_of(uut.Shape("a", "b"))).toBeFalsy();
         expect(uut.Shape("a", "b").super_of(uut.Shape("a"))).toBeFalsy();
     });

@@ -60,14 +60,14 @@ export function defgeneric(name, ...argument_names) {
     return GenericFunction(name, argument_names);
 }
 
-let method_prototype = {
-    lambda_list: [],
-    qualifiers: [],
-    specializrs: [],
-    body() { throw new Error('Unimplemented'); },
-    environment: {},
-    generic_function: {},
-};
+// let method_prototype = {
+//     lambda_list: [],
+//     qualifiers: [],
+//     specializrs: [],
+//     body() { throw new Error('Unimplemented'); },
+//     environment: {},
+//     generic_function: {},
+// };
 
 export function StandardMethod(
     lambda_list, qualifiers, specializers, body
@@ -83,7 +83,7 @@ export function StandardMethod(
     this.generic_function = null;
 }
 
-function ensure_method(gf, lambda_list, qualifiers, specializers, body) {
+function ensure_method(gf/*, lambda_list, qualifiers, specializers, body*/) {
     let new_method = StandardMethod(...[].slice.call(arguments, 1));
     add_method(gf, new_method);
     return new_method;
@@ -95,9 +95,9 @@ function add_method(gf, method) {
     return method;
 }
 
-function classes_of(args) {
-    return args.map(Object.getPrototypeOf);
-}
+// function classes_of(args) {
+//     return args.map(Object.getPrototypeOf);
+// }
 
 const required_portion = x => x;
 
@@ -111,7 +111,7 @@ function apply_generic_function(gf, args) {
     }
 }
 
-function method_more_specific_p(m1, m2, required_classes) {
+function method_more_specific_p(m1, m2/*, required_classes*/) {
     const m1specializers = m1.specializers;
     const m2specializers = m2.specializers;
 
@@ -141,13 +141,26 @@ Object.prototype[idS] = function () { return this };
 
 export function Specializer() {}
 Specializer.prototype = {
-    matches(obj) { return false; },
-    super_of(obj) { return false; },
+    matches(_obj) { return false; },
+    super_of(_obj) { return false; },
 }
 
 function isSuperset(superset, subset) {
-    return Array.from(subset).every(superset.has.bind(superset));
+    return (
+        (superset.size > subset.size)
+        && Array.from(subset).every(superset.has.bind(superset))
+    );
 }
+
+const matchShape = defgeneric("matchShape", "shape", "value")
+      .primary([Array], ([name, dflt], v) => dflt!==undefined && v[name] === dflt)
+      .primary([String], (name, v) => v[name] !== undefined)
+      .fn;
+
+export const extractKey = defgeneric("extractKey", "key")
+      .primary([Array], ([name, _]) => name)
+      .primary([String], (name) => name)
+      .fn;
 
 export function Shape(...keys) {
     if (! (this instanceof Shape) ) {
@@ -157,7 +170,7 @@ export function Shape(...keys) {
 }
 Shape.prototype = Object.assign(new Specializer(), {
     matches(obj) {
-        return Array.from(this.keys).every(key => obj[key] !== undefined);
+        return Array.from(this.keys).every(key => matchShape(key, obj));
     },
     super_of(spec) {
         // this is the super of spec
@@ -165,15 +178,22 @@ Shape.prototype = Object.assign(new Specializer(), {
         // and if this.keys != spec.keys
 
         if (!(spec instanceof Shape)) {
-            return false;
+            const specKeys = spec && new Set(Object.getOwnPropertyNames(spec));
+            return !!specKeys && isSuperset(specKeys, this.keys);
+        } else {
+            return isSuperset(spec.keys, this.keys);
         }
-
-        let this_keys_subset_of_spec_keys = isSuperset(spec.keys, this.keys);
-        let not_eq = this.keys.size !== spec.keys.size;
-
-        return this_keys_subset_of_spec_keys && not_eq;
     }
 });
+
+// function trace(fun) {
+//     return function (...args) {
+//         console.log(fun, `args are: thsds`, this, 'others', args);
+//         const result = fun.apply(this, args);
+//         console.log(`result`, result);
+//         return result;
+//     }
+// }
 
 export function matches_specializer(obj, specializer) {
     let objType = typeof obj;
@@ -237,18 +257,18 @@ function arr_eq(a1, a2) {
     }
 }
 
-function set_eq(a1, a2) {
-    if (a1.length !== a2.length) {
-        return false;
-    } else {
-        let result = true;
-        for (let elem of a1) {
-            result = result && a2.has(elem);
-            if (!result) break;
-        }
-        return result;
-    }
-}
+// function set_eq(a1, a2) {
+//     if (a1.length !== a2.length) {
+//         return false;
+//     } else {
+//         let result = true;
+//         for (let elem of a1) {
+//             result = result && a2.has(elem);
+//             if (!result) break;
+//         }
+//         return result;
+//     }
+// }
 
 const primary_method_p =
       method => method instanceof WrappedMethod || method.qualifiers.length === 0;

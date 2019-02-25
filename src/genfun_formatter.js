@@ -1,17 +1,6 @@
 
 window.devtoolsFormatters = [
     {
-        header(obj) {
-            if (obj instanceof StandardMethod) {
-            console.log('........................................')
-                const method = obj;
-                return ["div", {}, `#<StandardMethod ${method.qualifiers.map(x => ':'+x.toString().slice(7,-1)).join(' ')} (${method.specializers.map(x => x.name.toString())})>`];
-            }
-            return null;
-        },
-        hasBody() { return false; }
-    },
-    {
         header(obj, config) {
             if (config && config.genfunFormatter) {
                 return ["div", {}, config.key];

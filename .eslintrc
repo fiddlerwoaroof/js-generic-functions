@@ -15,7 +15,7 @@
     },
     "rules": {
         "no-unused-vars": ["error", {
-            "argsIgnorePattern": "(^[_][_]*$)|(^.$)"
+            "argsIgnorePattern": "(^[_][_]*.*$)|(^.$)"
         }]
     }
 }

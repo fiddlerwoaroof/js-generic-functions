@@ -6,7 +6,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Document</title>
-  <script src="main.o.js" defer></script>
+  <script src="dist/main.o.js" defer></script>
+  <style>
+    * { box-sizing: border-box; }
+    h1 > span {display: inline-block; white-space: nowrap;}
+    h1 > span + span::before {content: ' '; display: inline-block; }
+    h1 .desc, h1 .price {display: inline; width: auto; }
+    ul { padding: 0; list-style: none; width: 14em; font-family: 'Source Code Pro', monospace }
+    li { text-align: right;}
+    .desc { display: inline-block; vertical-align: baseline; width: 75%;}
+    .price { display: inline-block; vertical-align: baseline; width: 25%; }
+  </style>
 </head>
 
 <body>

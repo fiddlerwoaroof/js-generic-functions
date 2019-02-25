@@ -1,32 +1,69 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import * as gf from '../src/genfuns';
 import '../src/genfun_formatter';
+import { Receipt } from './render';
+import * as m from './Model';
 
-class Animal { 
-  constructor() {
+import * as gf from '../src/genfuns';
+
+const Editable =
+  gf.defgeneric("Editable", "props")
+    .around([Object], function (_) {
+      return <div style={{ display: 'inline-block' }}>{this.call_next_method()} </div>
+    })
+    .primary([gf.Shape("label", "htmlFor")], ({ label, htmlFor }) =>
+      <label {...{htmlFor}}>{label}</label>)
+    .primary([gf.Shape("label", "htmlFor", "value")], function ({ value, onChange }) {
+      return <>
+        {this.call_next_method()}
+        {onChange ? null : <span> {value}</span>}
+      </>
+    })
+    .primary([gf.Shape("label", "htmlFor", "value", "onChange")], function ({ value, htmlFor, onChange }) {
+      return <>
+        {this.call_next_method()}
+        <input type="text" value={value} id={htmlFor} name={htmlFor} onChange={onChange}></input>
+      </>
+    })
+    .fn;
+
+class Field extends React.Component {
+  constructor(props) {
+    super();
+    this.state = { editing: false, val: props.value };
   }
-
+  click() {
+    this.setState(() => ({ editing: !this.state.editing, val: this.state.val }));
+  }
+  onChange(e) {
+    const val = e.target.value;
+    this.setState(() => ({ editing: true, val }))
+  }
+  render() {
+    const editingProps = {};
+    if (this.state.editing) {
+      editingProps.onChange = this.onChange.bind(this);
+    }
+    return <div>
+      <Editable {...this.props} {...editingProps} value={this.state.val} />
+      <button onClick={this.click.bind(this)}>Toggle</button>
+    </div>
+  }
 }
-class Dog extends Animal { }
-class Cat extends Animal { }
-
-const Animals = gf.defgeneric("Animals", "animaltorender")
-  .primary([gf.Shape("animals")], ({ animals }) => Animals(animals))
-  .primary([Array], animals => (<ul>{
-    animals.map((a, idx) => Animals(a, idx), animals)
-  }</ul>))
-  .around([Animal], function (_, key) {
-    return (<li {...{key}}>{this.call_next_method()}</li>);
-  })
-  .primary([Dog], dog => (<div>Dog</div>))
-  .primary([Cat], cat => (<div>Cat</div>))
-  .fn;
 
 ReactDOM.render(
   <div>
-    <h1>animal zoo</h1>
-    <Animals animals={[new Dog(), new Cat(), new Dog(), new Dog()]} />
+    <Field label="the field" htmlFor="the-field" value="foo" />
+    <Editable label="bazquuxes" htmlFor="bazquux" value="foo" display />
+    <Editable label="bazquuxes" htmlFor="bazquux" value="foo" editable />
+    <Receipt items={[
+      new m.AlcoholicBeverage(11),
+      new m.AlcoholicBeverage(12),
+      new m.AlcoholicBeverage(13),
+      new m.NormalFood(11),
+      new m.NonFood(11),
+      new m.AlcoholicBeverage(10)
+    ]} />
   </div>,
   document.querySelector('main'),
   () => {
