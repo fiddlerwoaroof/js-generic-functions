@@ -1,8 +1,8 @@
 {
   "name": "js-generic-functions",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "1.0.3",
+  "description": "A CLOS-inspired implementation of generic functions",
+  "main": "dist/genfuns.js",
   "dependencies": {
     "@babel/preset-react": "^7.0.0",
     "react": "^16.5.0",
@@ -29,6 +29,14 @@
     "rollup-plugin-node-resolve": "^3.4.0",
     "rollup-plugin-serve": "^0.4.2"
   },
+  "files": [
+    "/dist/*.js",
+    "/dist/*.css",
+    "/dist/*.html",
+    "/src/*.js",
+    "/src/*.css",
+    "/src/*.html"
+  ],
   "scripts": {
     "test": "jest"
   },

@@ -1,4 +1,4 @@
-import * as gf from '../src/genfuns';
+import {GenericFunction, around_qualifier} from '../src/genfuns';
 
 function zipWith(fn, ...args) {
     const minLen = Math.min(...args.map(x => x.length));
