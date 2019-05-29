@@ -19,7 +19,7 @@
     "enzyme": "^3.6.0",
     "eslint": "^5.14.1",
     "eslint-plugin-react": "^7.11.1",
-    "jest": "^23.6.0",
+    "jest": "^24.8.0",
     "npm": "^6.4.1",
     "ramda": "*",
     "rollup": "^0.65.2",
