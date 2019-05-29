@@ -1,10 +1,11 @@
+/* eslint-disable */
 
 window.devtoolsFormatters = [
     {
         header(obj, config) {
             if (config && config.genfunFormatter) {
                 return ["div", {}, config.key];
-            } else if (! (obj.gf || obj instanceof GenericFunction) ) {
+            } else if (!(obj.gf || obj instanceof GenericFunction)) {
                 return null;
             } else if (obj.gf) {
                 const args = obj.gf.lambda_list.join(', ');
@@ -12,7 +13,7 @@ window.devtoolsFormatters = [
                 return [
                     'div', {},
                     `GenericFunction lambda: ${obj.gf.name}(${args}) `
-                        + `[${method_count} methods]`
+                    + `[${method_count} methods]`
                 ];
             } else {
                 const args = obj.lambda_list.join(', ');

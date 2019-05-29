@@ -1,10 +1,10 @@
-export function NoNextMethodError() {}
+export function NoNextMethodError() { }
 NoNextMethodError.prototype = Object.create(Error);
 
-export function NoApplicableMethodError() {}
+export function NoApplicableMethodError() { }
 NoApplicableMethodError.prototype = Object.create(Error);
 
-export function NoPrimaryMethodError() {}
+export function NoPrimaryMethodError() { }
 NoPrimaryMethodError.prototype = Object.create(NoApplicableMethodError);
 
 const before_qualifier = Symbol.for('before');
@@ -33,19 +33,19 @@ let genfun_prototype = {
     },
     get fn() {
         const gf = this;
-        const lambda = (function() {
+        const lambda = (function () {
             return apply_generic_function(gf, [].slice.call(arguments));
         }).bind(gf);
         return Object.defineProperties(lambda, {
-            'name': {value: gf.name},
-            'lambda_list': {value: gf.lambda_list},
-            'gf': {value: gf},
+            'name': { value: gf.name },
+            'lambda_list': { value: gf.lambda_list },
+            'gf': { value: gf },
         });
     }
 };
 
 function GenericFunction(name, lambda_list) {
-    if (! (this instanceof GenericFunction) ) {
+    if (!(this instanceof GenericFunction)) {
         return new GenericFunction(...arguments);
     }
 
@@ -72,7 +72,7 @@ export function defgeneric(name, ...argument_names) {
 export function StandardMethod(
     lambda_list, qualifiers, specializers, body
 ) {
-    if (! (this instanceof StandardMethod) ) {
+    if (!(this instanceof StandardMethod)) {
         return new StandardMethod(...arguments);
     }
 
@@ -139,7 +139,7 @@ export function sub_specializer_p(c1, c2) {
 const idS = Symbol.for('id');
 Object.prototype[idS] = function () { return this };
 
-export function Specializer() {}
+export function Specializer() { }
 Specializer.prototype = {
     matches(_obj) { return false; },
     super_of(_obj) { return false; },
@@ -153,17 +153,17 @@ function isSuperset(superset, subset) {
 }
 
 const matchShape = defgeneric("matchShape", "shape", "value")
-      .primary([Array], ([name, dflt], v) => dflt!==undefined && v[name] === dflt)
-      .primary([String], (name, v) => v[name] !== undefined)
-      .fn;
+    .primary([Array], ([name, dflt], v) => dflt !== undefined && v[name] === dflt)
+    .primary([String], (name, v) => v[name] !== undefined)
+    .fn;
 
 export const extractKey = defgeneric("extractKey", "key")
-      .primary([Array], ([name, _]) => name)
-      .primary([String], (name) => name)
-      .fn;
+    .primary([Array], ([name, _]) => name)
+    .primary([String], (name) => name)
+    .fn;
 
 export function Shape(...keys) {
-    if (! (this instanceof Shape) ) {
+    if (!(this instanceof Shape)) {
         return new Shape(...keys);
     }
     this.keys = new Set(keys);
@@ -221,15 +221,15 @@ export function matches_specializer(obj, specializer) {
 function compute_applicable_methods_using_classes(gf, required_classes) {
     const applicable_methods = gf.methods.filter(
         method => method.specializers.every((specializer, idx) => matches_specializer(required_classes[idx], specializer))
-        
+
     );
 
-    applicable_methods.sort((a,b) => {
+    applicable_methods.sort((a, b) => {
         let result = 0;
-        if (method_more_specific_p(a,b)) {
+        if (method_more_specific_p(a, b)) {
             result = 1;
         }
-        if (method_more_specific_p(b,a)) {
+        if (method_more_specific_p(b, a)) {
             result = -1;
         }
 
@@ -271,13 +271,13 @@ function arr_eq(a1, a2) {
 // }
 
 const primary_method_p =
-      method => method instanceof WrappedMethod || method.qualifiers.length === 0;
+    method => method instanceof WrappedMethod || method.qualifiers.length === 0;
 const before_method_p =
-      method => !(method instanceof WrappedMethod) && arr_eq(method.qualifiers, [before_qualifier]);
+    method => !(method instanceof WrappedMethod) && arr_eq(method.qualifiers, [before_qualifier]);
 const after_method_p =
-      method => !(method instanceof WrappedMethod) && arr_eq(method.qualifiers, [after_qualifier]);
+    method => !(method instanceof WrappedMethod) && arr_eq(method.qualifiers, [after_qualifier]);
 const around_method_p =
-      method => !(method instanceof WrappedMethod) && arr_eq(method.qualifiers, [around_qualifier]);
+    method => !(method instanceof WrappedMethod) && arr_eq(method.qualifiers, [around_qualifier]);
 
 function WrappedMethod(continuation) {
     this.continuation = continuation;
@@ -291,7 +291,7 @@ function apply_methods(gf, args, applicable_methods) {
     afters.reverse();
 
     const main_call = Object.defineProperty(
-        function() {
+        function () {
             if (primaries.length === 0) {
                 throw new NoPrimaryMethodError(`No primary method for ${gf.name}`);
             }
@@ -308,7 +308,7 @@ function apply_methods(gf, args, applicable_methods) {
                 }
             }
         },
-        'name', {value: `main_call_${gf.name}`}, 
+        'name', { value: `main_call_${gf.name}` },
     );
 
     if (arounds.length === 0) {

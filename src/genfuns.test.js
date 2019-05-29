@@ -14,21 +14,21 @@ describe('matches_specializer', () => {
         expect(uut.matches_specializer([], Object)).toBeTruthy();
         expect(uut.matches_specializer([], Number)).toBeFalsy();
 
-        function Foo() {}
+        function Foo() { }
         Foo.prototype = Object.create(null);
         const inst = new Foo();
         expect(uut.matches_specializer(inst, Foo)).toBeTruthy();
         expect(uut.matches_specializer(inst, Object)).toBeFalsy();
 
-        expect(uut.matches_specializer({a:1}, uut.Shape('a'))).toBeTruthy();
-        expect(uut.matches_specializer({a:1, b:2}, uut.Shape('a'))).toBeTruthy();
-        expect(uut.matches_specializer({b:2}, uut.Shape('a'))).toBeFalsy();
+        expect(uut.matches_specializer({ a: 1 }, uut.Shape('a'))).toBeTruthy();
+        expect(uut.matches_specializer({ a: 1, b: 2 }, uut.Shape('a'))).toBeTruthy();
+        expect(uut.matches_specializer({ b: 2 }, uut.Shape('a'))).toBeFalsy();
 
-        expect(uut.matches_specializer({a:1, b:2, c:3}, uut.Shape('a', 'b', 'c'))).toBeTruthy();
-        expect(uut.matches_specializer({a:1, b:2, c:3, d:4}, uut.Shape('a', 'b', 'c'))).toBeTruthy();
-        expect(uut.matches_specializer({a:1, c:3}, uut.Shape('a', 'b', 'c'))).toBeFalsy();
-        expect(uut.matches_specializer({c:3}, uut.Shape('a', 'b', 'c'))).toBeFalsy();
-        expect(uut.matches_specializer({d:3}, uut.Shape('a', 'b', 'c'))).toBeFalsy();
+        expect(uut.matches_specializer({ a: 1, b: 2, c: 3 }, uut.Shape('a', 'b', 'c'))).toBeTruthy();
+        expect(uut.matches_specializer({ a: 1, b: 2, c: 3, d: 4 }, uut.Shape('a', 'b', 'c'))).toBeTruthy();
+        expect(uut.matches_specializer({ a: 1, c: 3 }, uut.Shape('a', 'b', 'c'))).toBeFalsy();
+        expect(uut.matches_specializer({ c: 3 }, uut.Shape('a', 'b', 'c'))).toBeFalsy();
+        expect(uut.matches_specializer({ d: 3 }, uut.Shape('a', 'b', 'c'))).toBeFalsy();
     });
 
     test('null behavior', () => {
@@ -70,7 +70,7 @@ describe('defgeneric', () => {
         expect(
             uut.defgeneric("testing1", "a", "b")
                 .primary([Object, Object], (_, __) => 1)
-                .fn(1,2)
+                .fn(1, 2)
         ).toEqual(1);
 
         try {
@@ -85,14 +85,14 @@ describe('defgeneric', () => {
         expect(
             uut.defgeneric("testing1", "a", "b")
                 .primary([Number, Number], (_, __) => 1)
-                .fn(1,2)
+                .fn(1, 2)
         ).toEqual(1);
 
         expect(
             uut.defgeneric("testing1", "a", "b")
                 .primary([Number, Number], (_, __) => 2)
                 .primary([String, String], (_, __) => 1)
-                .fn("1","2")
+                .fn("1", "2")
         ).toEqual(1);
 
         let firstCounts = 0;
@@ -100,7 +100,7 @@ describe('defgeneric', () => {
             uut.defgeneric("testing1", "a", "b")
                 .primary([Number, Number], (_, __) => firstCounts += 1)
                 .primary([String, String], (_, __) => firstCounts += 1)
-                .fn("1","2")
+                .fn("1", "2")
         ).toEqual(1);
         expect(firstCounts).toEqual(1);
 
@@ -109,7 +109,7 @@ describe('defgeneric', () => {
             uut.defgeneric("testing1", "a", "b")
                 .primary([Object, Object], (_, __) => secondCounts += 1)
                 .primary([String, String], (_, __) => secondCounts += 1)
-                .fn("1","2")
+                .fn("1", "2")
         ).toEqual(1);
         expect(secondCounts).toEqual(1);
 
@@ -119,7 +119,7 @@ describe('defgeneric', () => {
                 .before([Object, Object], (_, __) => thirdCounts += 1)
                 .primary([String, String], (_, __) => 'hi')
                 .after([Object, String], (_, __) => thirdCounts += 1)
-                .fn("1","2")
+                .fn("1", "2")
         ).toEqual('hi');
         expect(thirdCounts).toEqual(2);
 
@@ -189,19 +189,19 @@ describe('defgeneric', () => {
                 })
                 .fn("foobar")
         ).toEqual(1);
-        
+
         expect(
             uut.defgeneric("foobar", "a", "b")
-                .primary ([String, String], function (a,b) {
+                .primary([String, String], function (a, b) {
                     return `1${this.call_next_method()}`;
                 })
-                .primary ([Object, String], function (a,b) {
+                .primary([Object, String], function (a, b) {
                     return `3${this.call_next_method()}`;
                 })
-                .primary ([String, Object], function (a,b) {
+                .primary([String, Object], function (a, b) {
                     return `2${this.call_next_method()}`;
                 })
-                .primary ([Object, Object], function (a,b) {
+                .primary([Object, Object], function (a, b) {
                     return `4`;
                 }).fn("a", "b")
         ).toEqual("1234");
@@ -223,33 +223,33 @@ describe('defgeneric', () => {
 describe('custom specializers', () => {
     test('Shape works', () => {
         expect(uut.defgeneric("foobar", "a")
-               .primary([uut.Shape('a', 'b')], ({a,b}) => a+b)
-               .primary([Object], _ => null)
-               .fn({a:1,b:2}))
+            .primary([uut.Shape('a', 'b')], ({ a, b }) => a + b)
+            .primary([Object], _ => null)
+            .fn({ a: 1, b: 2 }))
             .toEqual(3);
 
         expect(uut.defgeneric("foobar", "a")
-               .primary([uut.Shape('a', 'b')], ({a,b}) => a+b)
-               .primary([Object], _ => null)
-               .fn({a:1,b:2,c:3}))
+            .primary([uut.Shape('a', 'b')], ({ a, b }) => a + b)
+            .primary([Object], _ => null)
+            .fn({ a: 1, b: 2, c: 3 }))
             .toEqual(3);
 
         expect(uut.defgeneric("foobar", "a")
-               .primary([uut.Shape('a', 'b')], ({a,b}) => a+b)
-               .primary([Object], _ => null)
-               .fn({a:1}))
+            .primary([uut.Shape('a', 'b')], ({ a, b }) => a + b)
+            .primary([Object], _ => null)
+            .fn({ a: 1 }))
             .toEqual(null);
 
         expect(uut.defgeneric("foobar", "a")
-               .primary([uut.Shape(['a', 1], 'b')], ({a,b}) => a+b)
-               .primary([Object], _ => null)
-               .fn({a:1, b: 3}))
+            .primary([uut.Shape(['a', 1], 'b')], ({ a, b }) => a + b)
+            .primary([Object], _ => null)
+            .fn({ a: 1, b: 3 }))
             .toEqual(4);
 
         expect(uut.defgeneric("foobar", "a")
-               .primary([uut.Shape(['a', null], 'b')], ({a,b}) => b)
-               .primary([Object], _ => null)
-               .fn({a:null, b: 3}))
+            .primary([uut.Shape(['a', null], 'b')], ({ a, b }) => b)
+            .primary([Object], _ => null)
+            .fn({ a: null, b: 3 }))
             .toEqual(3);
 
         expect(uut.defgeneric("foobar", "a")
@@ -259,34 +259,34 @@ describe('custom specializers', () => {
             .toEqual(null); //undefined is not a permissible default: treated as if the key is missing
 
         expect(uut.defgeneric("foobar", "a")
-               .primary([uut.Shape(['a', 1], 'b')], ({a,b}) => a+b)
-               .primary([Object], _ => null)
-               .fn({a:2, b: 3}))
+            .primary([uut.Shape(['a', 1], 'b')], ({ a, b }) => a + b)
+            .primary([Object], _ => null)
+            .fn({ a: 2, b: 3 }))
             .toEqual(null);
     });
 
     test('Shape, prototype precedence', () => {
         expect(uut.defgeneric("foobar4", "a")
-               .primary([uut.Shape('a')], ({a}) => a)
-               .primary([uut.Shape('a', 'b')], ({a,b}) => {return a+b})
-               .primary([Object], _ => null).fn({a:1,b:3}))
+            .primary([uut.Shape('a')], ({ a }) => a)
+            .primary([uut.Shape('a', 'b')], ({ a, b }) => { return a + b })
+            .primary([Object], _ => null).fn({ a: 1, b: 3 }))
             .toEqual(4);
 
         expect(uut.defgeneric("foobar", "a")
-               .primary([uut.Shape('a', 'b')], ({a,b}) => a+b)
-               .primary([uut.Shape('b')], ({b}) => b)
-               .primary([Object], _ => null)
-               .fn({a:1,b:2}))
+            .primary([uut.Shape('a', 'b')], ({ a, b }) => a + b)
+            .primary([uut.Shape('b')], ({ b }) => b)
+            .primary([Object], _ => null)
+            .fn({ a: 1, b: 2 }))
             .toEqual(3);
 
-        const Foo = function () {}
-        Foo.prototype = {a: true, b: null};
+        const Foo = function () { }
+        Foo.prototype = { a: true, b: null };
         expect(uut.defgeneric("foobar", "a")
-               .primary([uut.Shape('a')], function ({a}) { return `a${this.call_next_method()}`; })
-               .primary([uut.Shape('a', 'b', 'c')], function ({a,b,c}) { return `c${this.call_next_method()}`; })
-               .primary([uut.Shape('a', 'b')], function ({a,b}) { return `b${this.call_next_method()}`; })
-               .primary([Object], _ => 'd')
-               .fn(Object.assign(new Foo(), {c: 3})))
+            .primary([uut.Shape('a')], function ({ a }) { return `a${this.call_next_method()}`; })
+            .primary([uut.Shape('a', 'b', 'c')], function ({ a, b, c }) { return `c${this.call_next_method()}`; })
+            .primary([uut.Shape('a', 'b')], function ({ a, b }) { return `b${this.call_next_method()}`; })
+            .primary([Object], _ => 'd')
+            .fn(Object.assign(new Foo(), { c: 3 })))
             .toEqual('cbad');
     });
 });
