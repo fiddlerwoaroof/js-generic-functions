@@ -1,5 +1,5 @@
 import * as uut from './genfuns';
-import * as e from './genfuns';
+import { fail } from 'assert';
 
 describe('matches_specializer', () => {
     test('works in expected cases', () => {
@@ -73,11 +73,14 @@ describe('defgeneric', () => {
                 .fn(1,2)
         ).toEqual(1);
 
-        expect(() => {
+        try {
             uut.defgeneric("foobar", "a")
-                .primary([String], function (a) {})
-                .fn({})
-        }).toThrow(e.NoApplicableMethodError);
+                .primary([String], function (a) { })
+                .fn({});
+            fail();
+        } catch (err) {
+            expect(err).toBeInstanceOf(uut.NoApplicableMethodError);
+        }
 
         expect(
             uut.defgeneric("testing1", "a", "b")
@@ -162,15 +165,7 @@ describe('defgeneric', () => {
     });
 
     test('call-next-method works', () => {
-        expect(() => {
-            uut.defgeneric("foobar", "a")
-                .primary([Object], function (a) {
-                    this.call_next_method();
-                })
-                .fn({});
-        }).toThrow(e.NoNextMethodError);
-
-        expect(() => {
+        try {
             uut.defgeneric("foobar", "a")
                 .primary([Object], function (a) {
                     this.call_next_method();
@@ -178,8 +173,11 @@ describe('defgeneric', () => {
                 .primary([String], function (a) {
                     return 1;
                 })
-                .fn({});
-        });
+                .fn({})
+            fail();
+        } catch (err) {
+            expect(err).toBeInstanceOf(uut.NoNextMethodError);
+        }
 
         expect(
             uut.defgeneric("foobar", "a")
@@ -207,6 +205,18 @@ describe('defgeneric', () => {
                     return `4`;
                 }).fn("a", "b")
         ).toEqual("1234");
+
+        try {
+            uut.defgeneric("foobar", "a")
+                .primary([Object], function (a) {
+                    this.call_next_method();
+                })
+                .fn({});
+            fail();
+        } catch (err) {
+            expect(err).toBeInstanceOf(uut.NoNextMethodError);
+        }
+
     });
 });
 

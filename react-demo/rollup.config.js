@@ -13,7 +13,7 @@ export default {
   format: 'iife',
   },
   plugins: [
-    livereload({watch: 'dist'}),
+    //livereload({watch: 'dist'}),
     replace({'process.env.NODE_ENV': JSON.stringify('development')}),
     babel({ exclude: 'node_modules/**'  }),
     npm_resolve({ module: true, jsnext: true, main: true, browser: true }),

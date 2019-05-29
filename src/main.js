@@ -1,3 +1,4 @@
+/* eslint-disable */
 import {GenericFunction, around_qualifier} from '../src/genfuns';
 
 function zipWith(fn, ...args) {

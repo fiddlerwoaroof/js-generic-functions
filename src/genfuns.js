@@ -2,7 +2,7 @@ export function NoNextMethodError() {}
 NoNextMethodError.prototype = Object.create(Error);
 
 export function NoApplicableMethodError() {}
-NoNextMethodError.prototype = Object.create(Error);
+NoApplicableMethodError.prototype = Object.create(Error);
 
 export function NoPrimaryMethodError() {}
 NoPrimaryMethodError.prototype = Object.create(NoApplicableMethodError);
