@@ -20,6 +20,7 @@ jobs:
 
       # run tests!
       - run: npx eslint src
-      - run: npm test
+      - run: npm test -- --reporters=default --reporters=jest-junit
+      - store_test_results: junit.xml
       - run: npx babel -d dist src
       - run: cd react-demo && npx rollup -c
