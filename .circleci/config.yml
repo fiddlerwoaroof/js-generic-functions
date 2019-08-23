@@ -24,6 +24,6 @@ jobs:
           name: jest
           command: mkdir -p test-results/jest && npm test -- --reporters=default --reporters=jest-junit
       - store_test_results:
-          path: junit.xml
+          path: test-results
       - run: npx babel -d dist src
       - run: cd react-demo && npx rollup -c
