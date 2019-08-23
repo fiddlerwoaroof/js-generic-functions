@@ -20,7 +20,9 @@ jobs:
 
       # run tests!
       - run: npx eslint src
-      - run: npm test -- --reporters=default --reporters=jest-junit
+      - run:
+          name: jest
+          command: mkdir -p test-results/jest && npm test -- --reporters=default --reporters=jest-junit
       - store_test_results:
           path: junit.xml
       - run: npx babel -d dist src
