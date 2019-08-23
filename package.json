@@ -1,4 +1,6 @@
 {
+  "author": "Ed L",
+  "license": "ISC",
   "name": "js-generic-functions",
   "version": "1.0.5",
   "description": "A CLOS-inspired implementation of generic functions",
@@ -38,8 +40,7 @@
     "/src/*.html"
   ],
   "scripts": {
-    "test": "jest"
-  },
-  "author": "",
-  "license": "ISC"
+    "test": "jest",
+    "prepublish": "babel -d dist src"
+  }
 }
