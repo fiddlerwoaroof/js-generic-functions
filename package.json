@@ -1,6 +1,6 @@
 {
   "name": "js-generic-functions",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A CLOS-inspired implementation of generic functions",
   "main": "dist/genfuns.js",
   "dependencies": {
