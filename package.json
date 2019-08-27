@@ -20,7 +20,7 @@
         "eslint": "^6.0.1",
         "eslint-plugin-react": "^7.11.1",
         "jest": "^24.8.0",
-        "jest-junit": "^7.0.0",
+        "jest-junit": "^8.0.0",
         "npm": "^6.4.1",
         "ramda": "*",
         "react": "^16.5.0",
