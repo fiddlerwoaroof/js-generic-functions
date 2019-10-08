@@ -1,0 +1,24 @@
+{
+    "compilerOptions": {
+        "target": "es2017",
+        "baseUrl": "src",
+        "allowSyntheticDefaultImports": true,
+        "noEmit": true,
+        "checkJs": true,
+        "lib": [ "es2017" ],
+        "rootDirs": [
+            "src"
+        ],
+        "module": "commonjs"
+    },
+    "exclude": [
+        ".history/*",
+        "frontend",
+        "node_modules",
+        "node_modules/**/*",
+        "**/node_modules/**/*",
+        "**/node_modules/*",
+        "/.#*",
+        "**/.#*"
+    ]
+}
