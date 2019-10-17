@@ -26,4 +26,4 @@ jobs:
       - store_test_results:
           path: test-results
       - run: npx babel -d dist src
-      - run: cd react-demo && npx rollup -c
+      - run: cd react-demo && npm ci && npx rollup -c
