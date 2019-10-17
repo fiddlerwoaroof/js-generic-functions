@@ -30,7 +30,7 @@
     "scripts": {
         "test": "jest src",
         "postinstall": "babel -d dist src",
-        "prepublish": "babel -d dist src && jest && eslint src"
+        "prepublish": "babel -d dist src && jest src && eslint src"
     },
     "jest-junit": {
         "outputDirectory": "./test-results/jest",
