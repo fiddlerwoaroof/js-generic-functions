@@ -2,7 +2,7 @@
     "author": "Ed L",
     "license": "ISC",
     "name": "js-generic-functions",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "description": "A CLOS-inspired implementation of generic functions",
     "repository": "https://github.com/fiddlerwoaroof/js-generic-functions",
     "homepage": "https://fiddlerwoaroof.github.io/js-generic-functions/",
@@ -29,8 +29,8 @@
     ],
     "scripts": {
         "test": "jest src",
-        "postinstall": "babel -d dist src",
-        "prepublish": "babel -d dist src && jest src && eslint src"
+        "build": "babel -d dist src",
+        "prepublishOnly": "babel -d dist src && jest src && eslint src"
     },
     "jest-junit": {
         "outputDirectory": "./test-results/jest",
