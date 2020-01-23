@@ -16,7 +16,7 @@
         "babel-core": "^7.0.0-bridge.0",
         "eslint": "^6.0.1",
         "eslint-plugin-react": "^7.11.1",
-        "jest": "^24.8.0",
+        "jest": "^25.1.0",
         "jest-junit": "^10.0.0"
     },
     "files": [
