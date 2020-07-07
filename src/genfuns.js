@@ -16,7 +16,7 @@ const Method = {
   qualifiers: [],
   specializers: [],
   body: () => {},
-  generic_function: null
+  generic_function: null,
 };
 
 let genfun_prototype = {
@@ -41,15 +41,15 @@ let genfun_prototype = {
   },
   get fn() {
     const gf = this;
-    const lambda = function() {
+    const lambda = function () {
       return apply_generic_function(gf, [].slice.call(arguments));
     }.bind(gf);
     return Object.defineProperties(lambda, {
       name: { value: gf.name },
       lambda_list: { value: gf.lambda_list },
-      gf: { value: gf }
+      gf: { value: gf },
     });
-  }
+  },
 };
 
 /**
@@ -146,7 +146,7 @@ function method_more_specific_p(m1, m2 /*, required_classes*/) {
   let result = null;
   for (let [spec1, spec2] of m1specializers.map((el, idx) => [
     el,
-    m2specializers[idx]
+    m2specializers[idx],
   ])) {
     if (spec1 !== spec2) {
       result = sub_specializer_p(spec1, spec2);
@@ -168,7 +168,7 @@ export function sub_specializer_p(c1, c2) {
 }
 
 const idS = Symbol.for("id");
-Object.prototype[idS] = function() {
+Object.prototype[idS] = function () {
   return this;
 };
 
@@ -179,7 +179,7 @@ Specializer.prototype = {
   },
   super_of(_obj) {
     return false;
-  }
+  },
 };
 
 function isSuperset(superset, subset) {
@@ -218,7 +218,7 @@ Shape.prototype = Object.assign(new Specializer(), {
     } else {
       return isSuperset(spec.keys, this.keys);
     }
-  }
+  },
 });
 
 // function trace(fun) {
@@ -354,7 +354,7 @@ function apply_methods(gf, args, applicable_methods) {
   afters.reverse();
 
   const main_call = Object.defineProperty(
-    function() {
+    function () {
       if (primaries.length === 0) {
         throw new NoPrimaryMethodError(`No primary method for ${gf.name}`);
       }
@@ -409,7 +409,7 @@ function apply_method(method, args, next_methods) {
 
     get next_method_p() {
       return next_methods.length !== 0;
-    }
+    },
   };
 
   return method.body

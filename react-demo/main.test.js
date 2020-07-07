@@ -1,8 +1,8 @@
-import * as m from './Model';
-import * as r from './render';
+import * as m from "./Model";
+import * as r from "./render";
 
-describe('Model', () => {
-  test('base behavior', () => {
+describe("Model", () => {
+  test("base behavior", () => {
     const Foo = class extends m.Item {
       get tax() {
         return 1;
@@ -13,10 +13,9 @@ describe('Model', () => {
     expect(new Foo(2).subtotal).toEqual(3);
   });
 
-  test('taxes', () => {
+  test("taxes", () => {
     expect(Math.floor(new m.NonFood(1).tax * 10000)).toEqual(825);
     expect(Math.floor(new m.AlcoholicBeverage(1).tax * 100)).toEqual(25);
     expect(Math.floor(new m.NormalFood(1).tax)).toEqual(0);
-  })
+  });
 });
-

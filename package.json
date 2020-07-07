@@ -1,46 +1,46 @@
 {
-    "author": "Ed L",
-    "license": "ISC",
-    "name": "js-generic-functions",
-    "version": "1.0.9",
-    "description": "A CLOS-inspired implementation of generic functions",
-    "repository": "https://github.com/fiddlerwoaroof/js-generic-functions",
-    "homepage": "https://fiddlerwoaroof.github.io/js-generic-functions/",
-    "main": "dist/genfuns.js",
-    "dependencies": {},
-    "devDependencies": {
-        "@babel/cli": "^7.10.4",
-        "@babel/core": "^7.10.4",
-        "@babel/plugin-proposal-object-rest-spread": "^7.10.4",
-        "@babel/preset-env": "^7.10.4",
-        "babel-core": "^7.0.0-bridge.0",
-        "eslint": "^7.1.0",
-        "eslint-plugin-react": "^7.20.3",
-        "jest": "^26.0.1",
-        "jest-junit": "^11.0.1",
-        "prettier": "^2.0.5"
-    },
-    "files": [
-        "/dist/*.js",
-        "/dist/*.css",
-        "/dist/*.html",
-        "/src/*.js",
-        "/src/*.css",
-        "/src/*.html"
-    ],
-    "scripts": {
-        "test": "jest src",
-        "format": "prettier --write .",
-        "build": "babel -d dist src",
-        "prepublishOnly": "babel -d dist src && jest src && eslint src"
-    },
-    "jest-junit": {
-        "outputDirectory": "./test-results/jest",
-        "outputName": "./results.xml"
-    },
-    "prettier": {
-        "trailingComma": "es5",
-        "jsxBracketSameLine": true,
-        "arrowParens": "avoid"
-    }
+  "author": "Ed L",
+  "license": "ISC",
+  "name": "js-generic-functions",
+  "version": "1.0.9",
+  "description": "A CLOS-inspired implementation of generic functions",
+  "repository": "https://github.com/fiddlerwoaroof/js-generic-functions",
+  "homepage": "https://fiddlerwoaroof.github.io/js-generic-functions/",
+  "main": "dist/genfuns.js",
+  "dependencies": {},
+  "devDependencies": {
+    "@babel/cli": "^7.10.4",
+    "@babel/core": "^7.10.4",
+    "@babel/plugin-proposal-object-rest-spread": "^7.10.4",
+    "@babel/preset-env": "^7.10.4",
+    "babel-core": "^7.0.0-bridge.0",
+    "eslint": "^7.1.0",
+    "eslint-plugin-react": "^7.20.3",
+    "jest": "^26.0.1",
+    "jest-junit": "^11.0.1",
+    "prettier": "^2.0.5"
+  },
+  "files": [
+    "/dist/*.js",
+    "/dist/*.css",
+    "/dist/*.html",
+    "/src/*.js",
+    "/src/*.css",
+    "/src/*.html"
+  ],
+  "scripts": {
+    "test": "jest src",
+    "format": "prettier --write .",
+    "build": "babel -d dist src",
+    "prepublishOnly": "babel -d dist src && jest src && eslint src"
+  },
+  "jest-junit": {
+    "outputDirectory": "./test-results/jest",
+    "outputName": "./results.xml"
+  },
+  "prettier": {
+    "trailingComma": "es5",
+    "jsxBracketSameLine": true,
+    "arrowParens": "avoid"
+  }
 }
