@@ -17,7 +17,8 @@
         "eslint": "^7.1.0",
         "eslint-plugin-react": "^7.20.3",
         "jest": "^26.0.1",
-        "jest-junit": "^11.0.1"
+        "jest-junit": "^11.0.1",
+        "prettier": "^2.0.5"
     },
     "files": [
         "/dist/*.js",
@@ -29,11 +30,17 @@
     ],
     "scripts": {
         "test": "jest src",
+        "format": "prettier --write .",
         "build": "babel -d dist src",
         "prepublishOnly": "babel -d dist src && jest src && eslint src"
     },
     "jest-junit": {
         "outputDirectory": "./test-results/jest",
         "outputName": "./results.xml"
+    },
+    "prettier": {
+        "trailingComma": "es5",
+        "jsxBracketSameLine": true,
+        "arrowParens": "avoid"
     }
 }
