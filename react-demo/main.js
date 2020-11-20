@@ -16,34 +16,33 @@ const Editable = gf
   .primary([gf.Shape("label", "htmlFor")], ({ label, htmlFor }) => (
     <label {...{ htmlFor }}>{label}</label>
   ))
-  .primary([gf.Shape("label", "htmlFor", "value")], function ({
-    value,
-    onChange,
-  }) {
-    return (
-      <>
-        {this.call_next_method()}
-        {onChange ? null : <span> {value}</span>}
-      </>
-    );
-  })
-  .primary([gf.Shape("label", "htmlFor", "value", "onChange")], function ({
-    value,
-    htmlFor,
-    onChange,
-  }) {
-    return (
-      <>
-        {this.call_next_method()}
-        <input
-          type="text"
-          value={value}
-          id={htmlFor}
-          name={htmlFor}
-          onChange={onChange}></input>
-      </>
-    );
-  }).fn;
+  .primary(
+    [gf.Shape("label", "htmlFor", "value")],
+    function ({ value, onChange }) {
+      return (
+        <>
+          {this.call_next_method()}
+          {onChange ? null : <span> {value}</span>}
+        </>
+      );
+    }
+  )
+  .primary(
+    [gf.Shape("label", "htmlFor", "value", "onChange")],
+    function ({ value, htmlFor, onChange }) {
+      return (
+        <>
+          {this.call_next_method()}
+          <input
+            type="text"
+            value={value}
+            id={htmlFor}
+            name={htmlFor}
+            onChange={onChange}></input>
+        </>
+      );
+    }
+  ).fn;
 
 class Field extends React.Component {
   constructor(props) {
