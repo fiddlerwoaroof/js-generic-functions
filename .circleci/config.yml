@@ -8,15 +8,14 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - v1-dependencies-{{ checksum "package.json" }}-{{ checksum "package-lock.json" }}
-            - v1-dependencies-
+            - v1-dependencies-{{ checksum "package.json" }}-{{ checksum "package-lock.json" }}-1
 
       - run: npm ci
 
       - save_cache:
           paths:
             - node_modules
-          key: v1-dependencies-{{ checksum "package.json" }}-{{ checksum "package-lock.json" }}
+          key: v1-dependencies-{{ checksum "package.json" }}-{{ checksum "package-lock.json" }}-1
 
       # run tests!
       - run: npx eslint src
