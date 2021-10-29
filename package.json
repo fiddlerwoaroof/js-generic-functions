@@ -17,7 +17,7 @@
     "eslint": "^7.1.0",
     "eslint-plugin-react": "^7.20.3",
     "jest": "^26.0.1",
-    "jest-junit": "^12.0.0",
+    "jest-junit": "^13.0.0",
     "prettier": "^2.0.5"
   },
   "files": [
