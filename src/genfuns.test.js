@@ -46,6 +46,11 @@ describe("matches_specializer", () => {
     ).toBeFalsy();
   });
 
+  test("works with custom specializers", () => {
+    const AEql = makeCustomSpecializer();
+    expect(uut.matches_specializer("foo", new AEql("foo"))).toBeTruthy();
+  });
+
   test("null behavior", () => {
     expect(uut.matches_specializer(null, null)).toBeTruthy();
     expect(uut.matches_specializer(null, Number)).toBeFalsy();
@@ -89,15 +94,12 @@ describe("defgeneric", () => {
         .fn(1, 2)
     ).toEqual(1);
 
-    try {
+    expect(() => {
       uut
         .defgeneric("foobar", "a")
         .primary([String], function (a) {})
         .fn({});
-      fail();
-    } catch (err) {
-      expect(err).toBeInstanceOf(uut.NoApplicableMethodError);
-    }
+    }).toThrow(uut.NoApplicableMethodError);
 
     expect(
       uut
@@ -158,6 +160,52 @@ describe("defgeneric", () => {
     ).toEqual(2);
   });
 
+  test("works with custom specializers", () => {
+    const AEql = makeCustomSpecializer();
+
+    expect(
+      uut
+        .defgeneric("foobar", "a")
+        .primary([new AEql("foo")], function (a) {
+          return 3;
+        })
+        .fn("foo")
+    ).toEqual(3);
+
+    expect(new AEql("foo").super_of(String)).toBeFalsy();
+    expect(new AEql("foo").super_of(Object)).toBeFalsy();
+
+    expect(
+      uut
+        .defgeneric("foobar", "a")
+        .primary([Object], function (a) {
+          return 1;
+        })
+        .primary([String], function (a) {
+          return 2;
+        })
+        .primary([new AEql("foo")], function (a) {
+          return 3;
+        })
+        .fn("foobar")
+    ).toEqual(2);
+
+    expect(
+      uut
+        .defgeneric("foobar", "a")
+        .primary([Object], function (a) {
+          return 1;
+        })
+        .primary([String], function (a) {
+          return 2;
+        })
+        .primary([new AEql("foo")], function (a) {
+          return 3;
+        })
+        .fn("foo")
+    ).toEqual(3);
+  });
+
   test("next-method-p works", () => {
     expect.assertions(3);
 
@@ -190,7 +238,7 @@ describe("defgeneric", () => {
   });
 
   test("call-next-method works", () => {
-    try {
+    expect(() => {
       uut
         .defgeneric("foobar", "a")
         .primary([Object], function (a) {
@@ -200,10 +248,7 @@ describe("defgeneric", () => {
           return 1;
         })
         .fn({});
-      fail();
-    } catch (err) {
-      expect(err).toBeInstanceOf(uut.NoNextMethodError);
-    }
+    }).toThrow(uut.NoNextMethodError);
 
     expect(
       uut
@@ -349,6 +394,91 @@ describe("custom specializers", () => {
   });
 });
 
+describe("Eql", () => {
+  test("basic stuff works", () => {
+    expect(uut.matches_specializer("foo", uut.Eql("foo"))).toBeTruthy();
+
+    expect(
+      uut
+        .defgeneric("foobar", "a")
+        .primary([new uut.Eql("foo")], function (a) {
+          return 3;
+        })
+        .fn("foo")
+    ).toEqual(3);
+
+    expect(
+      uut
+        .defgeneric("foobar", "a")
+        .primary([new uut.Eql(5)], function (a) {
+          return 3;
+        })
+        .fn(5)
+    ).toEqual(3);
+  });
+  test("inheritance works", () => {
+    expect(
+      uut
+        .defgeneric("foobar", "a")
+        .primary([Symbol], function () {
+          return 2;
+        })
+        .primary([uut.Eql(Symbol.iterator)], function () {
+          return 3;
+        })
+        .fn(Symbol.iterator)
+    ).toEqual(3);
+
+    expect(
+      uut
+        .defgeneric("foobar", "a")
+        .primary([Boolean], function (a) {
+          return 2;
+        })
+        .primary([new uut.Eql(false)], function (a) {
+          return 3;
+        })
+        .fn(false)
+    ).toEqual(3);
+
+    expect(
+      uut
+        .defgeneric("foobar", "a")
+        .primary([Boolean], function (a) {
+          return 2;
+        })
+        .primary([new uut.Eql(true)], function (a) {
+          return 3;
+        })
+        .fn(true)
+    ).toEqual(3);
+
+    expect(
+      uut
+        .defgeneric("foobar", "a")
+        .primary([String], function (a) {
+          return 2;
+        })
+        .primary([new uut.Eql("5")], function (a) {
+          return 3;
+        })
+        .fn("5")
+    ).toEqual(3);
+
+    expect(
+      uut
+        .defgeneric("foobar", "a")
+        .primary([Number], function (a) {
+          return 2;
+        })
+        .primary([new uut.Eql(5)], function (a) {
+          return 3;
+        })
+        .fn(5)
+    ).toEqual(3);
+  });
+});
+
 describe("Shape", () => {
   test("super_of", () => {
     expect(uut.Shape().super_of(uut.Shape("a", "b", "c"))).toBeTruthy();
@@ -359,3 +489,21 @@ describe("Shape", () => {
     expect(uut.Shape("a", "b").super_of(uut.Shape("a"))).toBeFalsy();
   });
 });
+
+function makeCustomSpecializer() {
+  function AEql(val) {
+    this.val = val;
+  }
+  AEql.prototype = Object.assign(new uut.Specializer(), {
+    toString() {
+      return `AEql(${this.val})`;
+    },
+    matches(other) {
+      return this.val === other;
+    },
+    super_of(other) {
+      return other === String ? false : other !== Object;
+    },
+  });
+  return AEql;
+}

@@ -170,6 +170,8 @@ export function sub_specializer_p(c1, c2) {
   let result = false;
   if (c1 instanceof Specializer) {
     result = c1.super_of(c2);
+  } else if (c2 instanceof Specializer) {
+    result = !c2.super_of(c1);
   } else if (c1.prototype !== undefined && c2.prototype !== undefined) {
     result = Object.isPrototypeOf.call(c1.prototype, c2.prototype);
   }
