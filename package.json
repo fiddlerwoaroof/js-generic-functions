@@ -7,12 +7,12 @@
   "repository": "https://github.com/fiddlerwoaroof/js-generic-functions",
   "homepage": "https://fiddlerwoaroof.github.io/js-generic-functions/",
   "main": "dist/genfuns.js",
-  "dependencies": {},
   "devDependencies": {
     "@babel/cli": "^7.10.4",
     "@babel/core": "^7.10.4",
     "@babel/plugin-proposal-object-rest-spread": "^7.10.4",
     "@babel/preset-env": "^7.10.4",
+    "@types/jest": "^27.0.3",
     "babel-core": "^7.0.0-bridge.0",
     "eslint": "^8.4.1",
     "eslint-plugin-react": "^7.20.3",
@@ -30,6 +30,7 @@
   ],
   "scripts": {
     "test": "jest src",
+    "test:watch": "jest --watch src",
     "format": "prettier --write .",
     "build": "babel -d dist src",
     "prepublishOnly": "babel -d dist src && jest src && eslint src"
