@@ -1,11 +1,20 @@
-export function NoNextMethodError() {}
-NoNextMethodError.prototype = Object.create(Error);
+function SubTypeError(name) {
+  const cls = function () {
+    const instance = Error(...arguments);
+    Object.setPrototypeOf(instance, Object.getPrototypeOf(this));
+    Object.defineProperty(instance, "name", {
+      value: name,
+      writable: false,
+    });
+    return instance;
+  };
+  cls.prototype = Object.create(Error);
+  return cls;
+}
 
-export function NoApplicableMethodError() {}
-NoApplicableMethodError.prototype = Object.create(Error);
-
-export function NoPrimaryMethodError() {}
-NoPrimaryMethodError.prototype = Object.create(NoApplicableMethodError);
+export const NoNextMethodError = SubTypeError("NoNextMethodError");
+export const NoApplicableMethodError = SubTypeError("NoApplicableMethodError");
+export const NoPrimaryMethodError = SubTypeError("NoPrimaryMethodError");
 
 const before_qualifier = Symbol.for("before");
 const after_qualifier = Symbol.for("after");
