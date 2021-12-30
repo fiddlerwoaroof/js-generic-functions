@@ -230,6 +230,24 @@ Shape.prototype = Object.assign(new Specializer(), {
   },
 });
 
+export function Eql(val) {
+  if (!(this instanceof Eql)) {
+    return new Eql(val);
+  }
+  this.val = val;
+}
+Eql.prototype = Object.assign(new Specializer(), {
+  toString() {
+    return `AEql(${this.val})`;
+  },
+  matches(other) {
+    return this.val === other;
+  },
+  super_of(other) {
+    return false;
+  },
+});
+
 // function trace(fun) {
 //     return function (...args) {
 //         console.log(fun, `args are: thsds`, this, 'others', args);
