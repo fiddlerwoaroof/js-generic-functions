@@ -245,7 +245,7 @@ Eql.prototype = Object.assign(new Specializer(), {
   matches(other) {
     return this.val === other;
   },
-  super_of(other) {
+  super_of() {
     return false;
   },
 });
