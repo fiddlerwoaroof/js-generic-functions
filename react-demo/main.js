@@ -38,7 +38,8 @@ const Editable = gf
             value={value}
             id={htmlFor}
             name={htmlFor}
-            onChange={onChange}></input>
+            onChange={onChange}
+          ></input>
         </>
       );
     }
