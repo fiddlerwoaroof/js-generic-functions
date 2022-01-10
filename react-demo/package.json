@@ -6,7 +6,7 @@
   "description": "A CLOS-inspired implementation of generic functions",
   "dependencies": {
     "react": "^16.5.0",
-    "react-dom": "^16.5.0"
+    "react-dom": "^16.13.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.16.7",
