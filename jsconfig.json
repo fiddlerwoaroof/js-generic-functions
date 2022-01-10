@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
-    "target": "es2017",
+    "target": "es2020",
     "baseUrl": "src",
     "allowSyntheticDefaultImports": true,
     "noEmit": true,
     "checkJs": true,
-    "lib": ["es2017"],
+    "lib": ["es2020"],
     "rootDirs": ["src"],
     "module": "commonjs"
   },

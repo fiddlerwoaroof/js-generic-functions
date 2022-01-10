@@ -107,13 +107,13 @@ describe("matches_specializer", () => {
     });
 
     test("handles BigInt", () => {
-      expect(4n).not.toBe(Object(4n));
+      expect(BigInt(4)).not.toBe(Object(BigInt(4)));
 
-      expect(uut.matches_specializer(Object(4n), BigInt)).toBeTruthy();
-      expect(uut.matches_specializer(Object(4n), Object)).toBeTruthy();
+      expect(uut.matches_specializer(Object(BigInt(4)), BigInt)).toBeTruthy();
+      expect(uut.matches_specializer(Object(BigInt(4)), Object)).toBeTruthy();
 
-      expect(uut.matches_specializer(4n, BigInt)).toBeTruthy();
-      expect(uut.matches_specializer(4n, Object)).toBeTruthy();
+      expect(uut.matches_specializer(BigInt(4), BigInt)).toBeTruthy();
+      expect(uut.matches_specializer(BigInt(4), Object)).toBeTruthy();
     });
   });
 
