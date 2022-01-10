@@ -9,7 +9,7 @@
     "react-dom": "^16.5.0"
   },
   "devDependencies": {
-    "@babel/cli": "^7.5.0",
+    "@babel/cli": "^7.16.7",
     "@babel/core": "^7.5.0",
     "@babel/plugin-proposal-object-rest-spread": "^7.5.0",
     "@babel/plugin-transform-react-jsx": "^7.0.0",
