@@ -278,7 +278,9 @@ export function matches_specializer(obj, specializer) {
   let specializer_proto = specializer && specializer.prototype;
   let result = obj === specializer_proto;
 
-  if (obj === null && obj === specializer) {
+  if (specializer instanceof Specializer) {
+    result = specializer.matches(obj);
+  } else if (obj === null && (obj === specializer || specializer === Object)) {
     result = true;
   } else if (specializer && specializer.prototype !== undefined) {
     if (objType === "object") {
@@ -294,14 +296,12 @@ export function matches_specializer(obj, specializer) {
     } else if (objType === "symbol") {
       result = matches_specializer(Symbol.prototype, specializer);
     } else if (objType === "undefined") {
-      result = obj === specializer;
+      result = specializer === Object || obj === specializer;
     } else if (objType === "bigint") {
       result = matches_specializer(BigInt.prototype, specializer);
     } else {
       throw new UnhandledObjType(objType);
     }
-  } else if (specializer instanceof Specializer) {
-    result = specializer.matches(obj);
   }
 
   return result;

@@ -51,14 +51,14 @@ describe("matches_specializer", () => {
       expect(uut.matches_specializer(null, null)).toBeTruthy();
       expect(uut.matches_specializer(null, Number)).toBeFalsy();
       expect(uut.matches_specializer(null, String)).toBeFalsy();
-      expect(uut.matches_specializer(null, Object)).toBeFalsy();
+      expect(uut.matches_specializer(null, Object)).toBeTruthy();
     });
 
     test("undefined (the value) behavior", () => {
       expect(uut.matches_specializer(undefined, undefined)).toBeTruthy();
       expect(uut.matches_specializer(undefined, Number)).toBeFalsy();
       expect(uut.matches_specializer(undefined, String)).toBeFalsy();
-      expect(uut.matches_specializer(undefined, Object)).toBeFalsy();
+      expect(uut.matches_specializer(undefined, Object)).toBeTruthy();
     });
 
     test.each([true, false])("booleans -> %s", bool => {
@@ -329,6 +329,22 @@ describe("defgeneric", () => {
     } catch (err) {
       expect(err).toBeInstanceOf(uut.NoNextMethodError);
     }
+  });
+
+  test("bugfix: behavior of null in method", () => {
+    const expectedResult = Symbol(4);
+    expect(() => {
+      uut
+        .defgeneric("foobar", "a", "b")
+        .primary([Object, Object], () => expectedResult)
+        .fn(null, null);
+    }).not.toThrow();
+    expect(
+      uut
+        .defgeneric("foobar", "a", "b")
+        .primary([Object, Object], () => expectedResult)
+        .fn(null, null)
+    ).toBe(expectedResult);
   });
 });
 
