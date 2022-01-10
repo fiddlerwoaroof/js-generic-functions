@@ -46,42 +46,80 @@ describe("matches_specializer", () => {
     ).toBeFalsy();
   });
 
+  describe("primitives", () => {
+    test("null behavior", () => {
+      expect(uut.matches_specializer(null, null)).toBeTruthy();
+      expect(uut.matches_specializer(null, Number)).toBeFalsy();
+      expect(uut.matches_specializer(null, String)).toBeFalsy();
+      expect(uut.matches_specializer(null, Object)).toBeFalsy();
+    });
+
+    test("undefined (the value) behavior", () => {
+      expect(uut.matches_specializer(undefined, undefined)).toBeTruthy();
+      expect(uut.matches_specializer(undefined, Number)).toBeFalsy();
+      expect(uut.matches_specializer(undefined, String)).toBeFalsy();
+      expect(uut.matches_specializer(undefined, Object)).toBeFalsy();
+    });
+
+    test.each([true, false])("booleans -> %s", bool => {
+      expect(bool).not.toBe(Object(bool));
+      expect(uut.matches_specializer(new Boolean(bool), Boolean)).toBeTruthy();
+      expect(uut.matches_specializer(bool, Boolean)).toBeTruthy();
+      expect(uut.matches_specializer(bool, Object)).toBeTruthy();
+    });
+
+    test("works for numbers", () => {
+      expect(1).not.toBe(Object(1));
+      expect(uut.matches_specializer(new Number(1), Number)).toBeTruthy();
+      expect(uut.matches_specializer(new Number(1), Object)).toBeTruthy();
+      expect(uut.matches_specializer(new Number(1), String)).toBeFalsy();
+
+      expect(uut.matches_specializer(1, Number)).toBeTruthy();
+      expect(uut.matches_specializer(1, Object)).toBeTruthy();
+      expect(uut.matches_specializer(1, String)).toBeFalsy();
+    });
+
+    test("handles strings", () => {
+      expect("asdf").not.toBe(Object("asdf"));
+
+      expect(
+        uut.matches_specializer(new String("foobar"), String)
+      ).toBeTruthy();
+      expect(
+        uut.matches_specializer(new String("foobar"), Object)
+      ).toBeTruthy();
+
+      expect(uut.matches_specializer("1", String)).toBeTruthy();
+      expect(uut.matches_specializer("1", Object)).toBeTruthy();
+      expect(uut.matches_specializer("1", Number)).toBeFalsy();
+    });
+
+    test("handles symbols", () => {
+      const symbolPrim = Symbol("primitive");
+      const boxedSymbol = Object(symbolPrim);
+      expect(symbolPrim).not.toBe(boxedSymbol);
+
+      expect(uut.matches_specializer(boxedSymbol, Symbol)).toBeTruthy();
+      expect(uut.matches_specializer(boxedSymbol, Object)).toBeTruthy();
+
+      expect(uut.matches_specializer(symbolPrim, Symbol)).toBeTruthy();
+      expect(uut.matches_specializer(symbolPrim, Object)).toBeTruthy();
+    });
+
+    test("handles BigInt", () => {
+      expect(4n).not.toBe(Object(4n));
+
+      expect(uut.matches_specializer(Object(4n), BigInt)).toBeTruthy();
+      expect(uut.matches_specializer(Object(4n), Object)).toBeTruthy();
+
+      expect(uut.matches_specializer(4n, BigInt)).toBeTruthy();
+      expect(uut.matches_specializer(4n, Object)).toBeTruthy();
+    });
+  });
+
   test("works with custom specializers", () => {
     const AEql = makeCustomSpecializer();
     expect(uut.matches_specializer("foo", new AEql("foo"))).toBeTruthy();
-  });
-
-  test("null behavior", () => {
-    expect(uut.matches_specializer(null, null)).toBeTruthy();
-    expect(uut.matches_specializer(null, Number)).toBeFalsy();
-    expect(uut.matches_specializer(null, String)).toBeFalsy();
-    expect(uut.matches_specializer(null, Object)).toBeFalsy();
-  });
-
-  test("undefined (the value) behavior", () => {
-    expect(uut.matches_specializer(undefined, undefined)).toBeTruthy();
-    expect(uut.matches_specializer(undefined, Number)).toBeFalsy();
-    expect(uut.matches_specializer(undefined, String)).toBeFalsy();
-    expect(uut.matches_specializer(undefined, Object)).toBeFalsy();
-  });
-
-  test("works for numbers", () => {
-    expect(uut.matches_specializer(new Number(1), Number)).toBeTruthy();
-    expect(uut.matches_specializer(new Number(1), Object)).toBeTruthy();
-    expect(uut.matches_specializer(new Number(1), String)).toBeFalsy();
-
-    expect(uut.matches_specializer(1, Number)).toBeTruthy();
-    expect(uut.matches_specializer(1, Object)).toBeTruthy();
-    expect(uut.matches_specializer(1, String)).toBeFalsy();
-  });
-
-  test("handles strings", () => {
-    expect(uut.matches_specializer(new String("foobar"), String)).toBeTruthy();
-    expect(uut.matches_specializer(new String("foobar"), Object)).toBeTruthy();
-
-    expect(uut.matches_specializer("1", String)).toBeTruthy();
-    expect(uut.matches_specializer("1", Object)).toBeTruthy();
-    expect(uut.matches_specializer("1", Number)).toBeFalsy();
   });
 });
 

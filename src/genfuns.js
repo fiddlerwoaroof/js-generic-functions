@@ -16,6 +16,20 @@ export const NoNextMethodError = SubTypeError("NoNextMethodError");
 export const NoApplicableMethodError = SubTypeError("NoApplicableMethodError");
 export const NoPrimaryMethodError = SubTypeError("NoPrimaryMethodError");
 
+export class UnhandledObjType extends Error {
+  /**
+   * @param {string} objType
+   */
+  constructor(objType, ...params) {
+    super(...params);
+    this.objType = objType;
+  }
+
+  toString() {
+    return `[${this.name}: unhandled objType: ${this.objType}]`;
+  }
+}
+
 const before_qualifier = Symbol.for("before");
 const after_qualifier = Symbol.for("after");
 const around_qualifier = Symbol.for("around");
@@ -267,16 +281,24 @@ export function matches_specializer(obj, specializer) {
   if (obj === null && obj === specializer) {
     result = true;
   } else if (specializer && specializer.prototype !== undefined) {
-    if (!result && objType === "object") {
-      result = Object.isPrototypeOf.call(specializer_proto, obj);
+    if (objType === "object") {
+      if (!result) {
+        result = Object.isPrototypeOf.call(specializer_proto, obj);
+      }
     } else if (objType === "number") {
-      result =
-        matches_specializer(Number.prototype, specializer) ||
-        matches_specializer(specializer_proto, Number);
+      result = matches_specializer(Number.prototype, specializer);
+    } else if (objType === "boolean") {
+      result = matches_specializer(Boolean.prototype, specializer);
     } else if (objType === "string") {
-      result =
-        matches_specializer(String.prototype, specializer) ||
-        matches_specializer(specializer_proto, String);
+      result = matches_specializer(String.prototype, specializer);
+    } else if (objType === "symbol") {
+      result = matches_specializer(Symbol.prototype, specializer);
+    } else if (objType === "undefined") {
+      result = obj === specializer;
+    } else if (objType === "bigint") {
+      result = matches_specializer(BigInt.prototype, specializer);
+    } else {
+      throw new UnhandledObjType(objType);
     }
   } else if (specializer instanceof Specializer) {
     result = specializer.matches(obj);
