@@ -10,7 +10,7 @@
   },
   "devDependencies": {
     "@babel/cli": "^7.16.7",
-    "@babel/core": "^7.5.0",
+    "@babel/core": "^7.16.7",
     "@babel/plugin-proposal-object-rest-spread": "^7.16.7",
     "@babel/plugin-transform-react-jsx": "^7.16.7",
     "@babel/preset-env": "^7.5.0",
