@@ -12,6 +12,8 @@ function SubTypeError(name) {
   return cls;
 }
 
+const foo;
+
 export const NoNextMethodError = SubTypeError("NoNextMethodError");
 export const NoApplicableMethodError = SubTypeError("NoApplicableMethodError");
 export const NoPrimaryMethodError = SubTypeError("NoPrimaryMethodError");
