@@ -12,7 +12,7 @@ function SubTypeError(name) {
   return cls;
 }
 
-const foo;
+let foo;
 
 export const NoNextMethodError = SubTypeError("NoNextMethodError");
 export const NoApplicableMethodError = SubTypeError("NoApplicableMethodError");
