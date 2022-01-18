@@ -25,6 +25,9 @@ jobs:
       - name: Run formatter
         run: npm run format
 
+      - name: Fix lint issues
+        run: npm run eslint -- --fix
+
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: 'chore: reformat'
