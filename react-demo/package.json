@@ -16,7 +16,7 @@
     "@babel/preset-env": "^7.16.11",
     "@babel/preset-react": "^7.16.7",
     "babel-core": "^7.0.0-bridge.0",
-    "eslint-plugin-react": "^7.29.2",
+    "eslint-plugin-react": "^7.29.3",
     "npm": "^8.5.3",
     "ramda": "*",
     "rollup": "^2.69.0",
