@@ -34,6 +34,9 @@ const before_qualifier = Symbol.for("before");
 const after_qualifier = Symbol.for("after");
 const around_qualifier = Symbol.for("around");
 
+/**
+ * The base prototype for a method.
+ */
 const Method = {
   lambda_list: [],
   qualifiers: [],
@@ -42,6 +45,7 @@ const Method = {
   generic_function: null,
 };
 
+/** @lends GenericFunction.prototype */
 let genfun_prototype = {
   name: "(placeholder)",
   lambda_list: [],
@@ -50,15 +54,62 @@ let genfun_prototype = {
     ensure_method(this, this.lambda_list, qualifiers, specializers, body);
     return this;
   },
+  /**
+   *  Add a primary method to the generic function. In the context of
+   *  the body, `this` has the available functions `call_next_method`
+   *  and the property `next_method_p` which allow delegating to other
+   *  implementations of the generic function. Only one of these will
+   *  be executed, unless `call_next_method` is called.
+   *
+   *  @param {Specializer[]} specializers the specializers controlling
+   *                                      dispatch to this method
+   *  @param {Function} body the implementation of the method
+   *  @returns GenericFunction
+   */
   primary(specializers, body) {
     return this.method([], specializers, body);
   },
+  /**
+   *  Add a before method to the generic function. Every before method
+   *  is runs before the primary method and no before method can
+   *  influence the return value of the generic function.
+   *
+   *  @param {Specializer[]} specializers the specializers controlling dispatch to this method
+   *  @param {Function} body the implementation of the method
+   *  @returns GenericFunction
+   */
   before(specializers, body) {
     return this.method([before_qualifier], specializers, body);
   },
+  /**
+   *  Add a after method to the generic function. Every after method
+   *  is runs after the primary method and no after method can
+   *  influence the return value of the generic function.
+   *
+   *  @param {Specializer[]} specializers the specializers controlling dispatch to this method
+   *  @param {Function} body the implementation of the method
+   *  @returns GenericFunction
+   */
   after(specializers, body) {
     return this.method([after_qualifier], specializers, body);
   },
+  /**
+   *  Add a around method to the generic function. In the context of
+   *  the body, `this` has the available functions `call_next_method`
+   *  and the property `next_method_p` which allow delegating to other
+   *  implementations of the generic function. A generic function with
+   *  only around methods cannot be called.  However, an around method
+   *  can skip the invocation of the primary method by not calling
+   *  `call_next_method` in its body.  An around method can also
+   *  modify the results of the primary method and/or the arguments to
+   *  the primary method. Note that changing the arguments to the
+   *  primary method in a way that violates the specializers is
+   *  unsupported and may have surprising consequences.
+   *
+   *  @param {Specializer[]} specializers the specializers controlling dispatch to this method
+   *  @param {Function} body the implementation of the method
+   *  @returns GenericFunction
+   */
   around(specializers, body) {
     return this.method([around_qualifier], specializers, body);
   },
@@ -77,7 +128,6 @@ let genfun_prototype = {
 
 /**
  * @class
- * @extends genfun_prototype
  * @param {string} name
  * @param {string[]} lambda_list
  * @property {Method[]} methods
@@ -91,9 +141,34 @@ function GenericFunction(name, lambda_list) {
   this.lambda_list = lambda_list;
   this.methods = [];
 }
-
 GenericFunction.prototype = Object.create(genfun_prototype);
 
+/**
+ * The main entrypoint to the library. Code like this constructs a new
+ * generic function named `foo`:
+ *
+ * ```js
+ * const foo = defgeneric('foo', 'arg1', 'arg2', 'arg3');
+ * ```
+ *
+ * To add methods to the generic function, you grab the generic
+ * function reference and call the relevant methods (arrow functions
+ * may be used, unless you want access to `call_next_method`):
+ *
+ * ```js
+ * foo.primary([String, Object, Object], (arg1, arg2, arg3) => { ... });
+ * foo.around([String, Object, Object], function (arg1, arg2, arg3) {
+ *   if (arg1 !== 'a') {
+ *     return this.call_next_method();
+ *   }
+ * });
+ * ```
+ *
+ * Note that these names mostly exist for introspection
+ * purposes. These were used in custom formatters, but Chrome removed
+ * that functionality.
+ *
+ */
 export function defgeneric(name, ...argument_names) {
   return GenericFunction(name, argument_names);
 }

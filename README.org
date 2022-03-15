@@ -8,6 +8,68 @@ https://github.com/sbcl/specializable). For the moment, this is only
 used to provide a Shape specializer, as the details of the interaction
 between such specializers and subtyping are an open question.
 
-* Use examples:
+* Docs
 
-** A React Component 
+** Basic Usage
+
+#+NAME: imports
+#+BEGIN_SRC js2
+import { defgeneric } from "./genfuns.js";
+#+END_SRC
+
+Defining a function works by calling src_js2{defgeneric} with some
+information about the function name and arguments. Methods are then
+added by calling the appropriate methods with a pair of arguments: a
+list of specializers (prototypes in the simple case, although there
+are other options) and a function to run if those specializers match.
+
+#+NAME: basic-definition
+#+BEGIN_SRC js2
+  const example1generic = defgeneric("example1", "a", "b")
+    .primary([Number, Object], (n, __) => [1, n])
+    .primary([Object, Number], (_, n) => [2, n])
+    .primary([Object, Object], (_, __) => [5, null]);
+#+END_SRC
+
+After a generic function has been defined, you can get the function to
+call it by accessing its src_js2{.fn} attribute.
+
+#+NAME: call-the-function
+#+BEGIN_SRC js2
+  const example1 = example1generic.fn;
+
+  expect(example1(5, {})).toEqual([1, 5]);
+  expect(example1({}, 6)).toEqual([2, 6]);
+  expect(example1("hello", {})).toEqual([5, null]);
+  expect(example1({}, "world")).toEqual([5, null]);
+  expect(example1({}, {})).toEqual([5, null]);
+#+END_SRC
+
+If a separate reference to the generic function object is maintained,
+you can add methods like so:
+
+#+NAME: add-methods
+#+BEGIN_SRC js2
+  example1generic
+    .primary([String, Object], (s, __) => [3, s])
+    .primary([Object, String], (_, s) => [4, s]);
+
+  expect(example1("hello", {})).toEqual([3, "hello"]);
+  expect(example1({}, "world")).toEqual([4, "world"]);
+#+END_SRC
+
+#+BEGIN_SRC js :tangle src/doc.test.js :comments noweb :noweb tangle :exports none
+  <<imports>>
+
+  describe("defgeneric", () => {
+    test("methods get called appropriately", () => {
+      <<basic-definition>>
+
+      <<call-the-function>>
+
+      <<add-methods>>
+
+      <<sample1>>
+    });
+  });
+#+END_SRC
