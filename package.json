@@ -21,6 +21,7 @@
     "prettier": "^2.0.5"
   },
   "files": [
+    "README.md",
     "/dist/*.js",
     "/dist/*.css",
     "/dist/*.html",
