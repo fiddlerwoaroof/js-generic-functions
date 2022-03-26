@@ -3,9 +3,9 @@
 #+HTML_HEAD: <link rel="stylesheet" href="./colors.css"></link>
 #+EXPORT_FILE_NAME: docs/index.html
 
-* What is this?
-
 [[https://www.npmjs.com/package/js-generic-functions][https://img.shields.io/npm/v/js-generic-functions.svg]] [[https://circleci.com/gh/fiddlerwoaroof/js-generic-functions.svg?style=svg]]
+
+* What is this?
 
 
 An implementation of generic functions based on CLOS and the protocols
