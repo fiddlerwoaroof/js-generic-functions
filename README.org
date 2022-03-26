@@ -5,7 +5,7 @@
 
 [[https://www.npmjs.com/package/js-generic-functions][https://img.shields.io/npm/v/js-generic-functions.svg]] [[https://circleci.com/gh/fiddlerwoaroof/js-generic-functions.svg?style=svg]]
 
-* What is this?
+** What is this?
 
 
 An implementation of generic functions based on CLOS and the protocols
@@ -16,9 +16,9 @@ https://github.com/sbcl/specializable). For the moment, this is only
 used to provide a Shape specializer, as the details of the interaction
 between such specializers and subtyping are an open question.
 
-* Docs
+** Docs
 
-** Basic Usage
+*** Basic Usage
 
 #+NAME: imports
 #+BEGIN_SRC js
@@ -66,7 +66,7 @@ you can add methods like so:
   expect(example1({}, "world")).toEqual([4, "world"]);
 #+END_SRC
 
-** Other sorts of specializers
+*** Other sorts of specializers
 #+NAME: specializer-import
 #+BEGIN_SRC js
   import { Shape, Eql } from "./genfuns.js";
