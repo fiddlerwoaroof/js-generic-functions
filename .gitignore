@@ -6,3 +6,7 @@ dist/
 junit.xml
 *.sw?
 .*.sw?
+README.html
+README.md
+.log/
+.DS_Store
