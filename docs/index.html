@@ -2,7 +2,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
   <head>
-    <!-- 2022-03-26 Sat 00:19 -->
+    <!-- 2022-03-26 Sat 00:38 -->
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>README for js-generic-functions</title>
@@ -463,13 +463,13 @@
         <h2>Table of Contents</h2>
         <div id="text-table-of-contents" role="doc-toc">
           <ul>
-            <li><a href="#orgcc8452b">1. What is this?</a></li>
+            <li><a href="#org071b24a">1. What is this?</a></li>
             <li>
-              <a href="#org3a3b812">2. Docs</a>
+              <a href="#org0f0b569">2. Docs</a>
               <ul>
-                <li><a href="#org8276ba5">2.1. Basic Usage</a></li>
+                <li><a href="#org1cbf251">2.1. Basic Usage</a></li>
                 <li>
-                  <a href="#orgb8af4f3">2.2. Other sorts of specializers</a>
+                  <a href="#org4edb380">2.2. Other sorts of specializers</a>
                 </li>
               </ul>
             </li>
@@ -485,12 +485,11 @@
         /></a>
         <img
           src="https://circleci.com/gh/fiddlerwoaroof/js-generic-functions.svg?style=svg"
-          alt="js-generic-functions.svg?style=svg"
-        />
+          alt="js-generic-functions.svg?style=svg" />
       </p>
 
-      <div id="outline-container-orgcc8452b" class="outline-2">
-        <h2 id="orgcc8452b">
+      <div id="outline-container-org071b24a" class="outline-2">
+        <h2 id="org071b24a">
           <span class="section-number-2">1.</span> What is this?
         </h2>
         <div class="outline-text-2" id="text-1">
@@ -508,19 +507,18 @@
         </div>
       </div>
 
-      <div id="outline-container-org3a3b812" class="outline-2">
-        <h2 id="org3a3b812"><span class="section-number-2">2.</span> Docs</h2>
+      <div id="outline-container-org0f0b569" class="outline-2">
+        <h2 id="org0f0b569"><span class="section-number-2">2.</span> Docs</h2>
         <div class="outline-text-2" id="text-2"></div>
-        <div id="outline-container-org8276ba5" class="outline-3">
-          <h3 id="org8276ba5">
+        <div id="outline-container-org1cbf251" class="outline-3">
+          <h3 id="org1cbf251">
             <span class="section-number-3">2.1.</span> Basic Usage
           </h3>
           <div class="outline-text-3" id="text-2-1">
             <div class="org-src-container">
               <pre
                 class="src src-js"
-                id="org7a77c74"
-              ><span style="color: #F0DFAF;">import</span> { defgeneric } from <span style="color: #D0BF8F;">"./genfuns.js"</span>;
+                id="org5a0cb5c"><span style="color: #F0DFAF;">import</span> { defgeneric } from <span style="color: #D0BF8F;">"./genfuns.js"</span>;
 </pre>
             </div>
 
@@ -535,8 +533,7 @@
             <div class="org-src-container">
               <pre
                 class="src src-js"
-                id="org564a17a"
-              ><span style="color: #F0DFAF;">const</span> <span style="color: #DC8CC3;">example1generic</span> = defgeneric(<span style="color: #D0BF8F;">"example1"</span>, <span style="color: #D0BF8F;">"a"</span>, <span style="color: #D0BF8F;">"b"</span>)
+                id="orgb88093c"><span style="color: #F0DFAF;">const</span> <span style="color: #DC8CC3;">example1generic</span> = defgeneric(<span style="color: #D0BF8F;">"example1"</span>, <span style="color: #D0BF8F;">"a"</span>, <span style="color: #D0BF8F;">"b"</span>)
   .primary([Number, Object], (n, __) =&gt; [1, n])
   .primary([Object, Number], (_, n) =&gt; [2, n])
   .primary([Object, Object], (_, __) =&gt; [5, <span style="font-weight: bold;">null</span>]);
@@ -551,8 +548,7 @@
             <div class="org-src-container">
               <pre
                 class="src src-js"
-                id="org31146cd"
-              ><span style="color: #F0DFAF;">const</span> <span style="color: #DC8CC3;">example1</span> = example1generic.fn;
+                id="org8eb1237"><span style="color: #F0DFAF;">const</span> <span style="color: #DC8CC3;">example1</span> = example1generic.fn;
 
 expect(example1(5, {})).toEqual([1, 5]);
 expect(example1({}, 6)).toEqual([2, 6]);
@@ -568,7 +564,7 @@ expect(example1({}, {})).toEqual([5, <span style="font-weight: bold;">null</span
             </p>
 
             <div class="org-src-container">
-              <pre class="src src-js" id="org1bdd8f1">example1generic
+              <pre class="src src-js" id="org3eaa9ed">example1generic
   .primary([String, Object], (s, __) =&gt; [3, s])
   .primary([Object, String], (_, s) =&gt; [4, s]);
 
@@ -579,8 +575,8 @@ expect(example1({}, <span style="color: #D0BF8F;">"world"</span>)).toEqual([4, <
           </div>
         </div>
 
-        <div id="outline-container-orgb8af4f3" class="outline-3">
-          <h3 id="orgb8af4f3">
+        <div id="outline-container-org4edb380" class="outline-3">
+          <h3 id="org4edb380">
             <span class="section-number-3">2.2.</span> Other sorts of
             specializers
           </h3>
@@ -588,16 +584,14 @@ expect(example1({}, <span style="color: #D0BF8F;">"world"</span>)).toEqual([4, <
             <div class="org-src-container">
               <pre
                 class="src src-js"
-                id="org1f7652d"
-              ><span style="color: #F0DFAF;">import</span> { Shape, Eql } from <span style="color: #D0BF8F;">"./genfuns.js"</span>;
+                id="org8310490"><span style="color: #F0DFAF;">import</span> { Shape, Eql } from <span style="color: #D0BF8F;">"./genfuns.js"</span>;
 </pre>
             </div>
 
             <div class="org-src-container">
               <pre
                 class="src src-js"
-                id="orge2d0781"
-              ><span style="color: #F0DFAF;">const</span> <span style="color: #DC8CC3;">example2</span> = defgeneric(<span style="color: #D0BF8F;">"example2"</span>, <span style="color: #D0BF8F;">"inp"</span>)
+                id="org34ae3c2"><span style="color: #F0DFAF;">const</span> <span style="color: #DC8CC3;">example2</span> = defgeneric(<span style="color: #D0BF8F;">"example2"</span>, <span style="color: #D0BF8F;">"inp"</span>)
   .primary([Shape(<span style="color: #D0BF8F;">"a"</span>, <span style="color: #D0BF8F;">"b"</span>)], inp =&gt; <span style="color: #D0BF8F;">`a: ${inp.a} b: ${inp.b}`</span>)
   .primary([Shape(<span style="color: #D0BF8F;">"a"</span>)], inp =&gt; <span style="color: #D0BF8F;">`a: ${inp.a} b: &lt;missing&gt;`</span>)
   .primary([Shape([<span style="color: #D0BF8F;">"c"</span>, 1])], inp =&gt; <span style="color: #D0BF8F;">`c: one`</span>)
@@ -617,7 +611,7 @@ expect(example2(1)).toEqual(<span style="color: #D0BF8F;">"one"</span>);
     </div>
     <div id="postamble" class="status">
       <p class="author">Author: Ed L</p>
-      <p class="date">Created: 2022-03-26 Sat 00:19</p>
+      <p class="date">Created: 2022-03-26 Sat 00:38</p>
       <p class="validation">
         <a href="https://validator.w3.org/check?uri=referer">Validate</a>
       </p>
