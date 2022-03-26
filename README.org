@@ -5,6 +5,8 @@
 
 * What is this?
 
+[[https://www.npmjs.com/package/js-generic-functions][https://img.shields.io/npm/v/js-generic-functions.svg]]
+
 An implementation of generic functions based on CLOS and the protocols
 defined in the Art of the Metaobject protocol, adapted for JS.  These
 adaptations include using the prototype chain instead of classes and
