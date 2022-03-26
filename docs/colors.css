@@ -86,3 +86,7 @@ body {
 a {
   color: var(--link);
 }
+
+.org-svg {
+  max-width: min-content;
+}

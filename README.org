@@ -1,6 +1,6 @@
 #+TITLE: README for js-generic-functions
 #+AUTHOR: Ed L
-#+HTML_HEAD: <link rel="stylesheet" href="./colors.css"></link>
+#+HTML_HEAD: <link rel="stylesheet" href="./colors.css">
 #+EXPORT_FILE_NAME: docs/index.html
 
 [[https://www.npmjs.com/package/js-generic-functions][https://img.shields.io/npm/v/js-generic-functions.svg]] [[https://circleci.com/gh/fiddlerwoaroof/js-generic-functions.svg?style=svg]]
