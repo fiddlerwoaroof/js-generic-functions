@@ -18,7 +18,7 @@
     "@rollup/plugin-replace": "^4.0.0",
     "eslint-plugin-react": "^7.29.4",
     "npm": "^8.8.0",
-    "rollup": "^2.72.1",
+    "rollup": "^2.74.1",
     "rollup-plugin-serve": "^1.1.0"
   },
   "license": "ISC",
