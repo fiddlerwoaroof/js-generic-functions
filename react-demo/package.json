@@ -16,7 +16,7 @@
     "@rollup/plugin-commonjs": "^22.0.0",
     "@rollup/plugin-node-resolve": "^13.3.0",
     "@rollup/plugin-replace": "^4.0.0",
-    "eslint-plugin-react": "^7.30.0",
+    "eslint-plugin-react": "^7.30.1",
     "npm": "^8.12.1",
     "rollup": "^2.77.1",
     "rollup-plugin-serve": "^1.1.0"
