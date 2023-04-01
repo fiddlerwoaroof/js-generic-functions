@@ -19,7 +19,7 @@
     "eslint-plugin-react": "^7.30.0",
     "npm": "^9.6.0",
     "rollup": "^2.77.1",
-    "rollup-plugin-serve": "^1.1.0"
+    "rollup-plugin-serve": "^2.0.2"
   },
   "license": "ISC",
   "name": "react-demo",
