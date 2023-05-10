@@ -1,5 +1,6 @@
 {
   "author": "Ed L",
+  "type": "module",
   "dependencies": {
     "ramda": "*",
     "react": "^18.2.0",
