@@ -1,27 +1,27 @@
 {
-    "niv": {
-        "branch": "master",
-        "description": "Easy dependency management for Nix projects",
-        "homepage": "https://github.com/nmattia/niv",
-        "owner": "nmattia",
-        "repo": "niv",
-        "rev": "0ebb80e003c26d5388a9b74645fbdcfca3bdd0ef",
-        "sha256": "0wpnk1n4vjyqwjjrm6dvkyh7xr7983rszfhfcg31v106qhfnh41c",
-        "type": "tarball",
-        "url": "https://github.com/nmattia/niv/archive/0ebb80e003c26d5388a9b74645fbdcfca3bdd0ef.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
-    "nixpkgs": {
-        "branch": "release-23.05",
-        "description": "Nix Packages collection",
-        "homepage": "",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "237c40f707fc57bee66e1b8fe53cc74b76a2f864",
-        "sha256": "0xwvbagj6qg5blk63a0gskakwjzrrk7n9j4brm4i3y4d24ff2xb5",
-        "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/237c40f707fc57bee66e1b8fe53cc74b76a2f864.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
-        "version": "21.11"
-    }
+  "niv": {
+    "branch": "master",
+    "description": "Easy dependency management for Nix projects",
+    "homepage": "https://github.com/nmattia/niv",
+    "owner": "nmattia",
+    "repo": "niv",
+    "rev": "0ebb80e003c26d5388a9b74645fbdcfca3bdd0ef",
+    "sha256": "0wpnk1n4vjyqwjjrm6dvkyh7xr7983rszfhfcg31v106qhfnh41c",
+    "type": "tarball",
+    "url": "https://github.com/nmattia/niv/archive/0ebb80e003c26d5388a9b74645fbdcfca3bdd0ef.tar.gz",
+    "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+  },
+  "nixpkgs": {
+    "branch": "release-23.05",
+    "description": "Nix Packages collection",
+    "homepage": "",
+    "owner": "NixOS",
+    "repo": "nixpkgs",
+    "rev": "237c40f707fc57bee66e1b8fe53cc74b76a2f864",
+    "sha256": "0xwvbagj6qg5blk63a0gskakwjzrrk7n9j4brm4i3y4d24ff2xb5",
+    "type": "tarball",
+    "url": "https://github.com/NixOS/nixpkgs/archive/237c40f707fc57bee66e1b8fe53cc74b76a2f864.tar.gz",
+    "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
+    "version": "21.11"
+  }
 }
