@@ -2,7 +2,7 @@
   "author": "Ed L",
   "license": "ISC",
   "name": "js-generic-functions",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "description": "A CLOS-inspired implementation of generic functions",
   "repository": "https://github.com/fiddlerwoaroof/js-generic-functions",
   "homepage": "https://fiddlerwoaroof.github.io/js-generic-functions/",
