@@ -18,7 +18,7 @@ let
 in {
   shell = stdenv.mkDerivation {
     name = "shell-env";
-    buildInputs = [nodejs ];
+    buildInputs = [nodejs hp.niv];
   };
   niv = hp.niv;
 }
