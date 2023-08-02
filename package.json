@@ -18,7 +18,7 @@
     "jest": "^29.5.0",
     "jest-junit": "^16.0.0",
     "npm": "^9.6.7",
-    "prettier": "^2.0.5"
+    "prettier": "^3.0.0"
   },
   "files": [
     "README.md",
