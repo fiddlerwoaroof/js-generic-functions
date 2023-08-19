@@ -2,6 +2,7 @@ name: Format (prettier)
 
 on:
   push:
+  merge_group:
   pull_request:
     paths:
       - "**.css"
