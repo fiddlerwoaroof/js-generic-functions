@@ -22,5 +22,6 @@
     "react": {
       "version": "16"
     }
-  }
+  },
+  "ignores": ["src/doc.test.js"]
 }
