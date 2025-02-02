@@ -18,7 +18,7 @@ jobs:
           key: v1-dependencies-{{ checksum "package.json" }}-{{ checksum "package-lock.json" }}-1
 
       # run tests!
-      - run: npx eslint src
+      - run: npm run lint
       - run:
           name: jest src
           command: mkdir -p test-results/jest && npm test -- --reporters=default --reporters=jest-junit
