@@ -10,11 +10,14 @@
   "devDependencies": {
     "@babel/cli": "^7.10.4",
     "@babel/core": "^7.10.4",
-    "@babel/plugin-proposal-object-rest-spread": "^7.10.4",
+    "@babel/plugin-transform-object-rest-spread": "^7.25.9",
     "@babel/preset-env": "^7.10.4",
+    "@eslint/eslintrc": "^3.2.0",
+    "@eslint/js": "^9.19.0",
     "@types/jest": "^29.4.0",
-    "eslint": "^8.4.1",
+    "eslint": "^9.19.0",
     "eslint-plugin-react": "^7.20.3",
+    "globals": "^15.14.0",
     "jest": "^29.5.0",
     "jest-junit": "^16.0.0",
     "npm": "^11.0.0",
@@ -34,7 +37,8 @@
     "test:watch": "jest --watch src",
     "format": "prettier --write .",
     "build": "babel -d dist src",
-    "prepublishOnly": "babel -d dist src && jest src && eslint src"
+    "prepublishOnly": "babel -d dist src && jest src && eslint src",
+    "lint": "eslint src"
   },
   "jest-junit": {
     "outputDirectory": "./test-results/jest",

@@ -4,7 +4,7 @@
 }, stdenv ? pkgs.stdenv, fetchurl ? pkgs.lib.fetchurl }:
 
 let
-  nodejs = pkgs.nodejs-18_x;
+  nodejs = pkgs.pkgs.nodejs_22;
   yarn = pkgs.yarn.overrideAttrs (_: { buildInputs = [ nodejs ]; });
   hp = pkgs.haskellPackages.override {
     overrides = self: super:
