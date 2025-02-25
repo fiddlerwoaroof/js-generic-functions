@@ -30,9 +30,9 @@ export class UnhandledObjType extends Error {
   }
 }
 
-const before_qualifier = Symbol.for("before");
-const after_qualifier = Symbol.for("after");
-const around_qualifier = Symbol.for("around");
+export const before_qualifier = Symbol.for("before");
+export const after_qualifier = Symbol.for("after");
+export const around_qualifier = Symbol.for("around");
 
 /**
  * The base prototype for a method.
