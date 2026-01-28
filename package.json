@@ -17,7 +17,7 @@
     "@types/jest": "^30.0.0",
     "eslint": "^9.19.0",
     "eslint-plugin-react": "^7.20.3",
-    "globals": "^16.0.0",
+    "globals": "^17.2.0",
     "jest": "^30.0.0",
     "jest-junit": "^16.0.0",
     "npm": "^11.0.0",
