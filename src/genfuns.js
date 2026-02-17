@@ -486,34 +486,53 @@ function buildTier3EMF(gf, primaryChain, befores, afters) {
 function buildTier4EMF(gf, partitioned) {
   const { primaries, befores, arounds, afters } = partitioned;
 
-  // Pre-slice arounds at build time
-  const aroundsTail = arounds.slice(1);
+  // Pre-build the inner chain (befores + primaries + afters) using existing EMF tiers
+  const primaryChain = buildPrimaryChain(gf, primaries);
+  let innerFn;
+  if (befores.length === 0 && afters.length === 0) {
+    innerFn = primaryChain;
+  } else {
+    innerFn = buildTier3EMF(gf, primaryChain, befores, afters);
+  }
 
-  return args => {
-    const main_call = Object.defineProperty(
-      function () {
-        if (primaries.length === 0) {
-          throw new NoPrimaryMethodError(`No primary method for ${gf.name}`);
-        }
-        for (let i = 0; i < befores.length; i++) {
-          apply_method(befores[i], args, []);
-        }
-        try {
-          return apply_method(primaries[0], args, primaries.slice(1));
-        } finally {
-          for (let i = 0; i < afters.length; i++) {
-            apply_method(afters[i], args, []);
+  // Build around closure chain from tail to head.
+  // Semantics: call_next_method(newArgs) propagates newArgs to remaining
+  // arounds, but the primary chain always receives the original entry args
+  // (matching WrappedMethod.continuation() capture semantics).
+  function buildAroundLevel(idx) {
+    const body = arounds[idx].body;
+
+    if (idx === arounds.length - 1) {
+      // Last around: call_next_method always invokes innerFn with original args
+      return (args, originalArgs) => {
+        const ctx = {
+          call_next_method() {
+            return innerFn(originalArgs);
+          },
+          next_method_p: true,
+        };
+        return body.call(ctx, ...args);
+      };
+    }
+
+    const nextLevel = buildAroundLevel(idx + 1);
+
+    return (args, originalArgs) => {
+      const ctx = {
+        call_next_method(...cnm_args) {
+          if (cnm_args.length > 0) {
+            return nextLevel(cnm_args, originalArgs);
           }
-        }
-      },
-      "name",
-      { value: `main_call_${gf.name}` }
-    );
+          return nextLevel(args, originalArgs);
+        },
+        next_method_p: true,
+      };
+      return body.call(ctx, ...args);
+    };
+  }
 
-    const wrapped_main_call = new WrappedMethod(main_call);
-    const next_methods = aroundsTail.concat([wrapped_main_call]);
-    return apply_method(arounds[0], args, next_methods);
-  };
+  const aroundChain = buildAroundLevel(0);
+  return args => aroundChain(args, args);
 }
 
 function buildEMF(gf, partitioned) {

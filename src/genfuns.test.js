@@ -739,6 +739,54 @@ describe("dispatch cache", () => {
     expect(log).toEqual(["around", "primary"]);
   });
 
+  test("EMF Tier 4: multiple arounds chain correctly", () => {
+    const log = [];
+    const gf = uut.defgeneric("emf_t4_multi", "a");
+    gf.around([Object], function (a) {
+      log.push(`outer:${a}`);
+      return this.call_next_method(a);
+    });
+    gf.around([Number], function (a) {
+      log.push(`inner:${a}`);
+      return this.call_next_method(a);
+    });
+    gf.primary([Number], a => {
+      log.push(`primary:${a}`);
+      return a * 2;
+    });
+    const fn = gf.fn;
+
+    expect(fn(5)).toEqual(10);
+    expect(log).toEqual(["inner:5", "outer:5", "primary:5"]);
+
+    log.length = 0;
+    expect(fn(7)).toEqual(14);
+    expect(log).toEqual(["inner:7", "outer:7", "primary:7"]);
+  });
+
+  test("EMF Tier 4: around with befores and afters", () => {
+    const log = [];
+    const gf = uut.defgeneric("emf_t4_combo", "a");
+    gf.before([Object], a => log.push("before"));
+    gf.around([Object], function (a) {
+      log.push("around");
+      return this.call_next_method(a);
+    });
+    gf.primary([Object], a => {
+      log.push("primary");
+      return "ok";
+    });
+    gf.after([Object], a => log.push("after"));
+    const fn = gf.fn;
+
+    expect(fn(1)).toEqual("ok");
+    expect(log).toEqual(["around", "before", "primary", "after"]);
+
+    log.length = 0;
+    expect(fn(2)).toEqual("ok");
+    expect(log).toEqual(["around", "before", "primary", "after"]);
+  });
+
   test("EMF reentrancy: recursive GF calls", () => {
     const gf = uut.defgeneric("emf_reentrant", "a");
     gf.primary([Number], function (a) {
