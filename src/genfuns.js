@@ -291,21 +291,28 @@ function buildKeyExtractors(gf) {
 
         // Collect constrained property names from each Shape — they must all constrain the same property name(s)
         const constrainedProps = customSpecs.map(shape =>
-          Array.from(shape.keys).map(k => k[0]).sort()
+          Array.from(shape.keys)
+            .map(k => k[0])
+            .sort()
         );
         const refProps = constrainedProps[0];
         const sameProps = constrainedProps.every(
-          props => props.length === refProps.length && props.every((p, i) => p === refProps[i])
+          props =>
+            props.length === refProps.length &&
+            props.every((p, i) => p === refProps[i])
         );
         if (!sameProps) return null;
 
-        const hasNonSpecializer = specsAtPos.some(s => !(s instanceof Specializer));
+        const hasNonSpecializer = specsAtPos.some(
+          s => !(s instanceof Specializer)
+        );
 
         if (refProps.length === 1) {
           const prop = refProps[0];
           if (hasNonSpecializer) {
             extractors.push(obj => {
-              if (typeof obj !== "object" || obj === null) return classBasedKey(obj);
+              if (typeof obj !== "object" || obj === null)
+                return classBasedKey(obj);
               return obj[prop];
             });
           } else {
@@ -317,7 +324,8 @@ function buildKeyExtractors(gf) {
         } else {
           if (hasNonSpecializer) {
             extractors.push(obj => {
-              if (typeof obj !== "object" || obj === null) return classBasedKey(obj);
+              if (typeof obj !== "object" || obj === null)
+                return classBasedKey(obj);
               return refProps.map(p => obj[p]).join("\0");
             });
           } else {
@@ -330,11 +338,14 @@ function buildKeyExtractors(gf) {
         continue;
       }
 
-      const hasNonSpecializer = specsAtPos.some(s => !(s instanceof Specializer));
+      const hasNonSpecializer = specsAtPos.some(
+        s => !(s instanceof Specializer)
+      );
       if (hasNonSpecializer) {
         // Mixed: class-based + Shape at same position — use combined key
         extractors.push(obj => {
-          if (typeof obj !== "object" || obj === null) return classBasedKey(obj);
+          if (typeof obj !== "object" || obj === null)
+            return classBasedKey(obj);
           return Object.getOwnPropertyNames(obj).sort().join("\0");
         });
         continue;
@@ -420,7 +431,7 @@ function buildPrimaryChain(gf, primaries) {
   if (primaries.length === 1) {
     // Tier 1: single primary, zero per-call allocation
     const body = primaries[0].body;
-    return (args) => body.call(NO_NEXT_METHOD_CTX, ...args);
+    return args => body.call(NO_NEXT_METHOD_CTX, ...args);
   }
 
   // Tier 2: multiple primaries — build recursive closure chain from tail to head
@@ -434,13 +445,13 @@ function buildPrimaryChain(gf, primaries) {
     const body = primaries[idx].body;
     if (idx === primaries.length - 1) {
       // Leaf: no next method
-      return (args) => body.call(NO_NEXT_METHOD_CTX, ...args);
+      return args => body.call(NO_NEXT_METHOD_CTX, ...args);
     }
 
     const nextLevel = buildLevel(idx + 1);
     const tailSlice = tailSlices[idx];
 
-    return (args) => {
+    return args => {
       const ctx = {
         call_next_method(...cnm_args) {
           if (cnm_args.length > 0) {
@@ -458,7 +469,7 @@ function buildPrimaryChain(gf, primaries) {
 }
 
 function buildTier3EMF(gf, primaryChain, befores, afters) {
-  return (args) => {
+  return args => {
     for (let i = 0; i < befores.length; i++) {
       befores[i].body.call(NO_NEXT_METHOD_CTX, ...args);
     }
@@ -478,7 +489,7 @@ function buildTier4EMF(gf, partitioned) {
   // Pre-slice arounds at build time
   const aroundsTail = arounds.slice(1);
 
-  return (args) => {
+  return args => {
     const main_call = Object.defineProperty(
       function () {
         if (primaries.length === 0) {
@@ -509,7 +520,7 @@ function buildEMF(gf, partitioned) {
   const { primaries, befores, arounds, afters } = partitioned;
 
   if (primaries.length === 0) {
-    return (args) => {
+    return args => {
       throw new NoPrimaryMethodError(`No primary method for ${gf.name}`);
     };
   }

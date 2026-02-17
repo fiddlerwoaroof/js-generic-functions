@@ -650,7 +650,9 @@ describe("dispatch cache", () => {
     expect(fn(7)).toEqual(14);
     // call_next_method should throw on leaf
     const gf2 = uut.defgeneric("emf_t1b", "a");
-    gf2.primary([Number], function (a) { return this.call_next_method(); });
+    gf2.primary([Number], function (a) {
+      return this.call_next_method();
+    });
     const fn2 = gf2.fn;
     // First call (cache miss) throws
     expect(() => fn2(1)).toThrow(uut.NoNextMethodError);
@@ -660,10 +662,18 @@ describe("dispatch cache", () => {
 
   test("EMF Tier 2: multi-primary chain with call_next_method", () => {
     const gf = uut.defgeneric("emf_t2", "a", "b");
-    gf.primary([String, String], function (a, b) { return `1${this.call_next_method()}`; });
-    gf.primary([String, Object], function (a, b) { return `2${this.call_next_method()}`; });
-    gf.primary([Object, String], function (a, b) { return `3${this.call_next_method()}`; });
-    gf.primary([Object, Object], function (a, b) { return `4`; });
+    gf.primary([String, String], function (a, b) {
+      return `1${this.call_next_method()}`;
+    });
+    gf.primary([String, Object], function (a, b) {
+      return `2${this.call_next_method()}`;
+    });
+    gf.primary([Object, String], function (a, b) {
+      return `3${this.call_next_method()}`;
+    });
+    gf.primary([Object, Object], function (a, b) {
+      return `4`;
+    });
     const fn = gf.fn;
 
     // First call (cache miss)
@@ -674,8 +684,12 @@ describe("dispatch cache", () => {
 
   test("EMF Tier 2: call_next_method with args", () => {
     const gf = uut.defgeneric("emf_t2_args", "a");
-    gf.primary([Object], function (a) { return `base:${a}`; });
-    gf.primary([String], function (a) { return this.call_next_method("override"); });
+    gf.primary([Object], function (a) {
+      return `base:${a}`;
+    });
+    gf.primary([String], function (a) {
+      return this.call_next_method("override");
+    });
     const fn = gf.fn;
 
     expect(fn("hello")).toEqual("base:override");
@@ -687,7 +701,10 @@ describe("dispatch cache", () => {
     const log = [];
     const gf = uut.defgeneric("emf_t3", "a");
     gf.before([Object], a => log.push("before"));
-    gf.primary([Object], a => { log.push("primary"); return "result"; });
+    gf.primary([Object], a => {
+      log.push("primary");
+      return "result";
+    });
     gf.after([Object], a => log.push("after"));
     const fn = gf.fn;
 
@@ -707,7 +724,10 @@ describe("dispatch cache", () => {
       log.push("around");
       return this.call_next_method(a);
     });
-    gf.primary([Object], a => { log.push("primary"); return "done"; });
+    gf.primary([Object], a => {
+      log.push("primary");
+      return "done";
+    });
     const fn = gf.fn;
 
     expect(fn(1)).toEqual("done");
@@ -725,7 +745,9 @@ describe("dispatch cache", () => {
       if (a <= 0) return 0;
       return a + gf.fn(a - 1);
     });
-    gf.primary([String], function (a) { return a.length; });
+    gf.primary([String], function (a) {
+      return a.length;
+    });
     const fn = gf.fn;
 
     // Recursive numeric calls
@@ -767,7 +789,10 @@ describe("dispatch cache", () => {
 
   test("mixed structural + value-constrained Shape degrades gracefully", () => {
     const gf = uut.defgeneric("mixed_shape", "a");
-    gf.primary([uut.Shape(["type", "heading"], "content")], ({ type, content }) => content);
+    gf.primary(
+      [uut.Shape(["type", "heading"], "content")],
+      ({ type, content }) => content
+    );
     gf.primary([Object], _ => null);
     const fn = gf.fn;
 
@@ -788,7 +813,10 @@ describe("dispatch cache", () => {
     const log = [];
     const gf = uut.defgeneric("cached9", "a");
     gf.before([Object], a => log.push("before"));
-    gf.primary([Object], a => { log.push("primary"); return "result"; });
+    gf.primary([Object], a => {
+      log.push("primary");
+      return "result";
+    });
     gf.after([Object], a => log.push("after"));
     gf.around([Object], function (a) {
       log.push("around-start");
@@ -800,13 +828,25 @@ describe("dispatch cache", () => {
 
     // First call (cache miss)
     expect(fn(1)).toEqual("result");
-    expect(log).toEqual(["around-start", "before", "primary", "after", "around-end"]);
+    expect(log).toEqual([
+      "around-start",
+      "before",
+      "primary",
+      "after",
+      "around-end",
+    ]);
 
     log.length = 0;
 
     // Second call (cache hit)
     expect(fn(2)).toEqual("result");
-    expect(log).toEqual(["around-start", "before", "primary", "after", "around-end"]);
+    expect(log).toEqual([
+      "around-start",
+      "before",
+      "primary",
+      "after",
+      "around-end",
+    ]);
   });
 });
 

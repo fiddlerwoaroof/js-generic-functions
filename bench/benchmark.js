@@ -9,12 +9,7 @@
 
 "use strict";
 
-const {
-  defgeneric,
-  Shape,
-  Eql,
-  Specializer,
-} = require("../dist/genfuns");
+const { defgeneric, Shape, Eql, Specializer } = require("../dist/genfuns");
 
 // ─── Helpers ────────────────────────────────────────────────
 
@@ -51,7 +46,11 @@ function bench(fn, iterations) {
   };
 }
 
-function runBenchmark(name, fn, { warmupIterations = 10000, measuredIterations = 100000 } = {}) {
+function runBenchmark(
+  name,
+  fn,
+  { warmupIterations = 10000, measuredIterations = 100000 } = {}
+) {
   // Phase 1: Cold (no JIT warmup for this specific function pattern)
   // We measure a small number of iterations before V8 has had a chance to optimize
   const cold = bench(fn, 100);
@@ -63,8 +62,12 @@ function runBenchmark(name, fn, { warmupIterations = 10000, measuredIterations =
   const hot = bench(fn, measuredIterations);
 
   console.log(`  ${name}`);
-  console.log(`    Cold (100 calls):    ${formatNs(cold.nsPerOp)}/op  (${formatOps(cold.opsPerSec)})`);
-  console.log(`    Hot  (${measuredIterations} calls): ${formatNs(hot.nsPerOp)}/op  (${formatOps(hot.opsPerSec)})`);
+  console.log(
+    `    Cold (100 calls):    ${formatNs(cold.nsPerOp)}/op  (${formatOps(cold.opsPerSec)})`
+  );
+  console.log(
+    `    Hot  (${measuredIterations} calls): ${formatNs(hot.nsPerOp)}/op  (${formatOps(hot.opsPerSec)})`
+  );
   console.log();
 
   return { name, cold, hot };
@@ -94,7 +97,9 @@ console.log();
 console.log("── 1. Single dispatch, single primary method ──");
 {
   const speak = defgeneric("speak", "animal");
-  speak.primary([Animal], function (a) { return "..."; });
+  speak.primary([Animal], function (a) {
+    return "...";
+  });
   const fn = speak.fn;
   const a = new Animal();
   results.push(runBenchmark("Animal -> speak", () => fn(a)));
@@ -105,9 +110,15 @@ console.log("── 2. Single dispatch, 3 primary methods (class hierarchy) ─�
 {
   const describe = defgeneric("describe", "animal");
   describe
-    .primary([Animal], function (a) { return "animal"; })
-    .primary([Dog], function (a) { return "dog"; })
-    .primary([Cat], function (a) { return "cat"; });
+    .primary([Animal], function (a) {
+      return "animal";
+    })
+    .primary([Dog], function (a) {
+      return "dog";
+    })
+    .primary([Cat], function (a) {
+      return "cat";
+    });
   const fn = describe.fn;
   const dog = new Dog();
   const cat = new Cat();
@@ -122,14 +133,24 @@ console.log("── 3. Deep hierarchy (4 levels), 4 methods ──");
 {
   const greet = defgeneric("greet", "animal");
   greet
-    .primary([Animal], function (a) { return "hi animal"; })
-    .primary([Dog], function (a) { return "hi dog"; })
-    .primary([Labrador], function (a) { return "hi lab"; })
-    .primary([GoldenRetriever], function (a) { return "hi golden"; });
+    .primary([Animal], function (a) {
+      return "hi animal";
+    })
+    .primary([Dog], function (a) {
+      return "hi dog";
+    })
+    .primary([Labrador], function (a) {
+      return "hi lab";
+    })
+    .primary([GoldenRetriever], function (a) {
+      return "hi golden";
+    });
   const fn = greet.fn;
   const golden = new GoldenRetriever();
   const lab = new Labrador();
-  results.push(runBenchmark("GoldenRetriever -> greet (deepest)", () => fn(golden)));
+  results.push(
+    runBenchmark("GoldenRetriever -> greet (deepest)", () => fn(golden))
+  );
   results.push(runBenchmark("Labrador -> greet", () => fn(lab)));
 }
 
@@ -138,10 +159,18 @@ console.log("── 4. Multiple dispatch (2 args), 4 methods ──");
 {
   const interact = defgeneric("interact", "a", "b");
   interact
-    .primary([Animal, Animal], function (a, b) { return "animals interact"; })
-    .primary([Dog, Cat], function (a, b) { return "dog chases cat"; })
-    .primary([Cat, Dog], function (a, b) { return "cat hisses at dog"; })
-    .primary([Dog, Dog], function (a, b) { return "dogs play"; });
+    .primary([Animal, Animal], function (a, b) {
+      return "animals interact";
+    })
+    .primary([Dog, Cat], function (a, b) {
+      return "dog chases cat";
+    })
+    .primary([Cat, Dog], function (a, b) {
+      return "cat hisses at dog";
+    })
+    .primary([Dog, Dog], function (a, b) {
+      return "dogs play";
+    });
   const fn = interact.fn;
   const dog = new Dog();
   const cat = new Cat();
@@ -154,9 +183,15 @@ console.log("── 5. Method combination (before + primary + after) ──");
 {
   const process_ = defgeneric("process", "item");
   process_
-    .before([Animal], function (a) { /* before */ })
-    .primary([Animal], function (a) { return "processed"; })
-    .after([Animal], function (a) { /* after */ });
+    .before([Animal], function (a) {
+      /* before */
+    })
+    .primary([Animal], function (a) {
+      return "processed";
+    })
+    .after([Animal], function (a) {
+      /* after */
+    });
   const fn = process_.fn;
   const a = new Animal();
   results.push(runBenchmark("Animal -> before+primary+after", () => fn(a)));
@@ -167,8 +202,12 @@ console.log("── 6. Around method with call_next_method ──");
 {
   const transform = defgeneric("transform", "item");
   transform
-    .around([Animal], function (a) { return this.call_next_method(a); })
-    .primary([Animal], function (a) { return "transformed"; });
+    .around([Animal], function (a) {
+      return this.call_next_method(a);
+    })
+    .primary([Animal], function (a) {
+      return "transformed";
+    });
   const fn = transform.fn;
   const a = new Animal();
   results.push(runBenchmark("Animal -> around+primary (CNM)", () => fn(a)));
@@ -179,9 +218,15 @@ console.log("── 7. call_next_method chain (3 primaries) ──");
 {
   const chain = defgeneric("chain", "animal");
   chain
-    .primary([Animal], function (a) { return "base"; })
-    .primary([Dog], function (a) { return "dog+" + this.call_next_method(a); })
-    .primary([Labrador], function (a) { return "lab+" + this.call_next_method(a); });
+    .primary([Animal], function (a) {
+      return "base";
+    })
+    .primary([Dog], function (a) {
+      return "dog+" + this.call_next_method(a);
+    })
+    .primary([Labrador], function (a) {
+      return "lab+" + this.call_next_method(a);
+    });
   const fn = chain.fn;
   const lab = new Labrador();
   results.push(runBenchmark("Labrador -> 3-deep CNM chain", () => fn(lab)));
@@ -192,9 +237,15 @@ console.log("── 8. Shape specializer dispatch ──");
 {
   const render = defgeneric("render", "obj");
   render
-    .primary([Object], function (o) { return "generic"; })
-    .primary([Shape("name")], function (o) { return "has name"; })
-    .primary([Shape("name", "age")], function (o) { return "has name+age"; });
+    .primary([Object], function (o) {
+      return "generic";
+    })
+    .primary([Shape("name")], function (o) {
+      return "has name";
+    })
+    .primary([Shape("name", "age")], function (o) {
+      return "has name+age";
+    });
   const fn = render.fn;
   const obj = { name: "Alice", age: 30 };
   results.push(runBenchmark("{name,age} -> Shape dispatch", () => fn(obj)));
@@ -205,10 +256,18 @@ console.log("── 9. Eql specializer dispatch ──");
 {
   const handle = defgeneric("handle", "code");
   handle
-    .primary([Number], function (c) { return "number"; })
-    .primary([Eql(200)], function (c) { return "ok"; })
-    .primary([Eql(404)], function (c) { return "not found"; })
-    .primary([Eql(500)], function (c) { return "error"; });
+    .primary([Number], function (c) {
+      return "number";
+    })
+    .primary([Eql(200)], function (c) {
+      return "ok";
+    })
+    .primary([Eql(404)], function (c) {
+      return "not found";
+    })
+    .primary([Eql(500)], function (c) {
+      return "error";
+    });
   const fn = handle.fn;
   results.push(runBenchmark("200 -> Eql dispatch", () => fn(200)));
   results.push(runBenchmark("404 -> Eql dispatch", () => fn(404)));
@@ -220,10 +279,18 @@ console.log("── 10. Primitive type dispatch ──");
 {
   const toStr = defgeneric("toStr", "val");
   toStr
-    .primary([Object], function (v) { return "obj"; })
-    .primary([Number], function (v) { return "num"; })
-    .primary([String], function (v) { return "str"; })
-    .primary([Boolean], function (v) { return "bool"; });
+    .primary([Object], function (v) {
+      return "obj";
+    })
+    .primary([Number], function (v) {
+      return "num";
+    })
+    .primary([String], function (v) {
+      return "str";
+    })
+    .primary([Boolean], function (v) {
+      return "bool";
+    });
   const fn = toStr.fn;
   results.push(runBenchmark("number -> toStr", () => fn(42)));
   results.push(runBenchmark("string -> toStr", () => fn("hello")));
@@ -236,14 +303,30 @@ console.log("── 11. Scaling: 8 methods on single generic ──");
 {
   const classify = defgeneric("classify", "animal");
   classify
-    .primary([Animal], function (a) { return "animal"; })
-    .primary([Dog], function (a) { return "dog"; })
-    .primary([Cat], function (a) { return "cat"; })
-    .primary([Labrador], function (a) { return "labrador"; })
-    .primary([Poodle], function (a) { return "poodle"; })
-    .primary([Siamese], function (a) { return "siamese"; })
-    .primary([Persian], function (a) { return "persian"; })
-    .primary([GoldenRetriever], function (a) { return "golden"; });
+    .primary([Animal], function (a) {
+      return "animal";
+    })
+    .primary([Dog], function (a) {
+      return "dog";
+    })
+    .primary([Cat], function (a) {
+      return "cat";
+    })
+    .primary([Labrador], function (a) {
+      return "labrador";
+    })
+    .primary([Poodle], function (a) {
+      return "poodle";
+    })
+    .primary([Siamese], function (a) {
+      return "siamese";
+    })
+    .primary([Persian], function (a) {
+      return "persian";
+    })
+    .primary([GoldenRetriever], function (a) {
+      return "golden";
+    });
   const fn = classify.fn;
   const golden = new GoldenRetriever();
   const persian = new Persian();
@@ -256,7 +339,9 @@ console.log("── 11. Scaling: 8 methods on single generic ──");
 // 12. Dispatch overhead vs plain function call
 console.log("── 12. Baseline: plain function call (for comparison) ──");
 {
-  function plainSpeak(a) { return "..."; }
+  function plainSpeak(a) {
+    return "...";
+  }
   const a = new Animal();
   results.push(runBenchmark("Plain function call", () => plainSpeak(a)));
 }
@@ -265,13 +350,17 @@ console.log("── 12. Baseline: plain function call (for comparison) ──");
 console.log("── 13. Repeated same-type calls (monomorphic) ──");
 {
   const mono = defgeneric("mono", "x");
-  mono.primary([Dog], function (x) { return 1; });
+  mono.primary([Dog], function (x) {
+    return 1;
+  });
   const fn = mono.fn;
   const dog = new Dog();
-  results.push(runBenchmark("Dog -> mono (single method, repeated)", () => fn(dog), {
-    warmupIterations: 50000,
-    measuredIterations: 500000,
-  }));
+  results.push(
+    runBenchmark("Dog -> mono (single method, repeated)", () => fn(dog), {
+      warmupIterations: 50000,
+      measuredIterations: 500000,
+    })
+  );
 }
 
 // 14. Value-constrained Shape dispatch (wine-inventory renderTokenG pattern)
@@ -279,18 +368,40 @@ console.log("── 14. Value-constrained Shape dispatch ──");
 {
   const renderToken = defgeneric("renderToken", "token");
   renderToken
-    .primary([Shape(["type", "heading"])], function (t) { return "heading"; })
-    .primary([Shape(["type", "paragraph"])], function (t) { return "paragraph"; })
-    .primary([Shape(["type", "code_block"])], function (t) { return "code_block"; })
-    .primary([Shape(["type", "list"])], function (t) { return "list"; })
-    .primary([Shape(["type", "blockquote"])], function (t) { return "blockquote"; });
+    .primary([Shape(["type", "heading"])], function (t) {
+      return "heading";
+    })
+    .primary([Shape(["type", "paragraph"])], function (t) {
+      return "paragraph";
+    })
+    .primary([Shape(["type", "code_block"])], function (t) {
+      return "code_block";
+    })
+    .primary([Shape(["type", "list"])], function (t) {
+      return "list";
+    })
+    .primary([Shape(["type", "blockquote"])], function (t) {
+      return "blockquote";
+    });
   const fn = renderToken.fn;
   const heading = { type: "heading", content: "Hello" };
   const para = { type: "paragraph", content: "World" };
   const code = { type: "code_block", content: "x=1" };
-  results.push(runBenchmark("{type:'heading'} -> value-constrained Shape", () => fn(heading)));
-  results.push(runBenchmark("{type:'paragraph'} -> value-constrained Shape", () => fn(para)));
-  results.push(runBenchmark("{type:'code_block'} -> value-constrained Shape", () => fn(code)));
+  results.push(
+    runBenchmark("{type:'heading'} -> value-constrained Shape", () =>
+      fn(heading)
+    )
+  );
+  results.push(
+    runBenchmark("{type:'paragraph'} -> value-constrained Shape", () =>
+      fn(para)
+    )
+  );
+  results.push(
+    runBenchmark("{type:'code_block'} -> value-constrained Shape", () =>
+      fn(code)
+    )
+  );
 }
 
 // ─── Summary ────────────────────────────────────────────────
@@ -303,7 +414,9 @@ console.log();
 const maxNameLen = Math.max(...results.map(r => r.name.length));
 for (const r of results) {
   const name = r.name.padEnd(maxNameLen);
-  console.log(`  ${name}  ${formatNs(r.hot.nsPerOp).padStart(10)}/op  ${formatOps(r.hot.opsPerSec).padStart(14)}`);
+  console.log(
+    `  ${name}  ${formatNs(r.hot.nsPerOp).padStart(10)}/op  ${formatOps(r.hot.opsPerSec).padStart(14)}`
+  );
 }
 
 // Find the plain function baseline for comparison
