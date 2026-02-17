@@ -544,6 +544,134 @@ describe("Shape", () => {
   });
 });
 
+describe("dispatch cache", () => {
+  test("repeated same-type calls return correct results", () => {
+    const gf = uut.defgeneric("cached1", "a");
+    gf.primary([Number], a => "number");
+    gf.primary([String], a => "string");
+    const fn = gf.fn;
+
+    expect(fn(1)).toEqual("number");
+    expect(fn(2)).toEqual("number");
+    expect(fn("a")).toEqual("string");
+    expect(fn("b")).toEqual("string");
+    // These should hit the cache
+    expect(fn(3)).toEqual("number");
+    expect(fn("c")).toEqual("string");
+  });
+
+  test("cache invalidation on method addition", () => {
+    const gf = uut.defgeneric("cached2", "a");
+    gf.primary([Object], a => "object");
+    const fn = gf.fn;
+
+    expect(fn(1)).toEqual("object");
+
+    gf.primary([Number], a => "number");
+    expect(fn(1)).toEqual("number");
+  });
+
+  test("clearDispatchCache works", () => {
+    const gf = uut.defgeneric("cached3", "a");
+    gf.primary([Number], a => "number");
+    const fn = gf.fn;
+
+    expect(fn(1)).toEqual("number");
+    gf.clearDispatchCache();
+    expect(fn(1)).toEqual("number");
+  });
+
+  test("Eql specializer caching", () => {
+    const gf = uut.defgeneric("cached4", "a");
+    gf.primary([uut.Eql(42)], a => "forty-two");
+    gf.primary([uut.Eql(99)], a => "ninety-nine");
+    const fn = gf.fn;
+
+    expect(fn(42)).toEqual("forty-two");
+    expect(fn(99)).toEqual("ninety-nine");
+    expect(fn(42)).toEqual("forty-two");
+  });
+
+  test("Shape specializer caching (no value constraints)", () => {
+    const gf = uut.defgeneric("cached5", "a");
+    gf.primary([uut.Shape("x", "y")], ({ x, y }) => `${x}:${y}`);
+    gf.primary([uut.Shape("x")], ({ x }) => x);
+    gf.primary([Object], _ => "other");
+    const fn = gf.fn;
+
+    expect(fn({ x: "Alice", y: 30 })).toEqual("Alice:30");
+    expect(fn({ x: "Bob" })).toEqual("Bob");
+    expect(fn(42)).toEqual("other");
+    // cache hits
+    expect(fn({ x: "Carol", y: 25 })).toEqual("Carol:25");
+    expect(fn({ x: "Dave" })).toEqual("Dave");
+  });
+
+  test("value-constrained Shape degrades gracefully", () => {
+    const gf = uut.defgeneric("cached6", "a");
+    gf.primary([uut.Shape(["a", 1], "b")], ({ a, b }) => a + b);
+    gf.primary([Object], _ => null);
+    const fn = gf.fn;
+
+    expect(fn({ a: 1, b: 3 })).toEqual(4);
+    expect(fn({ a: 2, b: 3 })).toEqual(null);
+  });
+
+  test("custom Specializer without cacheKey override degrades gracefully", () => {
+    function NoCacheSpec(val) {
+      this.val = val;
+    }
+    NoCacheSpec.prototype = Object.assign(new uut.Specializer(), {
+      matches(other) {
+        return this.val === other;
+      },
+      super_of() {
+        return false;
+      },
+    });
+
+    const gf = uut.defgeneric("cached7", "a");
+    gf.primary([new NoCacheSpec("x")], a => "matched");
+    gf.primary([Object], a => "fallback");
+    const fn = gf.fn;
+
+    expect(fn("x")).toEqual("matched");
+    expect(fn("y")).toEqual("fallback");
+    expect(fn("x")).toEqual("matched");
+  });
+
+  test(".fn getter returns same reference", () => {
+    const gf = uut.defgeneric("cached8", "a");
+    gf.primary([Object], a => a);
+    expect(gf.fn).toBe(gf.fn);
+  });
+
+  test("before/after/around methods work with cached partitioned data", () => {
+    const log = [];
+    const gf = uut.defgeneric("cached9", "a");
+    gf.before([Object], a => log.push("before"));
+    gf.primary([Object], a => { log.push("primary"); return "result"; });
+    gf.after([Object], a => log.push("after"));
+    gf.around([Object], function (a) {
+      log.push("around-start");
+      const r = this.call_next_method(a);
+      log.push("around-end");
+      return r;
+    });
+    const fn = gf.fn;
+
+    // First call (cache miss)
+    expect(fn(1)).toEqual("result");
+    expect(log).toEqual(["around-start", "before", "primary", "after", "around-end"]);
+
+    log.length = 0;
+
+    // Second call (cache hit)
+    expect(fn(2)).toEqual("result");
+    expect(log).toEqual(["around-start", "before", "primary", "after", "around-end"]);
+  });
+});
+
 function makeCustomSpecializer() {
   function AEql(val) {
     this.val = val;

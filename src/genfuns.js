@@ -114,15 +114,21 @@ let genfun_prototype = {
     return this.method([around_qualifier], specializers, body);
   },
   get fn() {
+    if (this._cachedFn !== null) return this._cachedFn;
     const gf = this;
     const lambda = function () {
       return apply_generic_function(gf, [].slice.call(arguments));
     }.bind(gf);
-    return Object.defineProperties(lambda, {
+    this._cachedFn = Object.defineProperties(lambda, {
       name: { value: gf.name },
       lambda_list: { value: gf.lambda_list },
       gf: { value: gf },
     });
+    return this._cachedFn;
+  },
+  clearDispatchCache() {
+    this._dispatchCache = null;
+    this._keyExtractors = undefined;
   },
 };
 
@@ -140,6 +146,9 @@ function GenericFunction(name, lambda_list) {
   this.name = name;
   this.lambda_list = lambda_list;
   this.methods = [];
+  this._dispatchCache = null;
+  this._keyExtractors = undefined;
+  this._cachedFn = null;
 }
 GenericFunction.prototype = Object.create(genfun_prototype);
 
@@ -212,6 +221,8 @@ function ensure_method(gf /*, lambda_list, qualifiers, specializers, body*/) {
 function add_method(gf, method) {
   method.generic_function = gf;
   gf.methods.push(method);
+  gf._dispatchCache = null;
+  gf._keyExtractors = undefined;
   return method;
 }
 
@@ -221,19 +232,198 @@ function add_method(gf, method) {
 
 const required_portion = x => x;
 
+function classBasedKey(obj) {
+  if (obj === null) return null;
+  if (obj === undefined) return undefined;
+  const t = typeof obj;
+  if (t === "number") return Number;
+  if (t === "string") return String;
+  if (t === "boolean") return Boolean;
+  if (t === "symbol") return Symbol;
+  if (t === "bigint") return BigInt;
+  return obj.constructor;
+}
+
+function buildKeyExtractors(gf) {
+  const methods = gf.methods;
+  if (methods.length === 0) return null;
+
+  const maxArgs = Math.max(...methods.map(m => m.specializers.length));
+  const extractors = [];
+
+  for (let pos = 0; pos < maxArgs; pos++) {
+    const specsAtPos = methods
+      .filter(m => pos < m.specializers.length)
+      .map(m => m.specializers[pos]);
+
+    const customSpecs = specsAtPos.filter(s => s instanceof Specializer);
+
+    if (customSpecs.length === 0) {
+      extractors.push(classBasedKey);
+      continue;
+    }
+
+    const allEql = customSpecs.every(s => s instanceof Eql);
+    if (allEql && customSpecs.length === specsAtPos.length) {
+      extractors.push(arg => arg);
+      continue;
+    }
+
+    const allShape = customSpecs.every(s => s instanceof Shape);
+    if (allShape) {
+      const hasValueConstraints = customSpecs.some(shape =>
+        Array.from(shape.keys).some(k => k instanceof Array)
+      );
+      if (hasValueConstraints) return null;
+
+      const hasNonSpecializer = specsAtPos.some(s => !(s instanceof Specializer));
+      if (hasNonSpecializer) {
+        // Mixed: class-based + Shape at same position — use combined key
+        extractors.push(obj => {
+          if (typeof obj !== "object" || obj === null) return classBasedKey(obj);
+          return Object.getOwnPropertyNames(obj).sort().join("\0");
+        });
+        continue;
+      }
+
+      extractors.push(obj => {
+        if (typeof obj !== "object" || obj === null) return undefined;
+        return Object.getOwnPropertyNames(obj).sort().join("\0");
+      });
+      continue;
+    }
+
+    // Check if any custom specializer lacks a cacheKey override
+    for (const spec of customSpecs) {
+      if (spec.cacheKey === Specializer.prototype.cacheKey) {
+        return null;
+      }
+    }
+
+    // Mixed specializer subtypes at this position — disable caching
+    return null;
+  }
+
+  return extractors;
+}
+
+const EMPTY_CACHE_SENTINEL = Object.freeze({ methods: [], primaries: [], befores: [], arounds: [], afters: [] });
+
+function getCachedMethods(gf, args) {
+  if (gf._keyExtractors === undefined) {
+    gf._keyExtractors = buildKeyExtractors(gf);
+  }
+  if (gf._keyExtractors === null) return null;
+  if (gf._dispatchCache === null) return null;
+
+  let node = gf._dispatchCache;
+  for (let i = 0; i < gf._keyExtractors.length; i++) {
+    const key = gf._keyExtractors[i](args[i]);
+    if (key === undefined) return null;
+    node = node.get(key);
+    if (node === undefined) return null;
+  }
+  return node;
+}
+
+function storeCachedMethods(gf, args, entry) {
+  if (gf._keyExtractors === undefined) {
+    gf._keyExtractors = buildKeyExtractors(gf);
+  }
+  if (gf._keyExtractors === null) return;
+
+  if (gf._dispatchCache === null) {
+    gf._dispatchCache = new Map();
+  }
+
+  let node = gf._dispatchCache;
+  const lastIdx = gf._keyExtractors.length - 1;
+  for (let i = 0; i < lastIdx; i++) {
+    const key = gf._keyExtractors[i](args[i]);
+    if (key === undefined) return;
+    let next = node.get(key);
+    if (next === undefined) {
+      next = new Map();
+      node.set(key, next);
+    }
+    node = next;
+  }
+  const lastKey = gf._keyExtractors[lastIdx](args[lastIdx]);
+  if (lastKey === undefined) return;
+  node.set(lastKey, entry);
+}
+
+function partitionMethods(applicable_methods) {
+  const primaries = applicable_methods.filter(primary_method_p);
+  const befores = applicable_methods.filter(before_method_p);
+  const arounds = applicable_methods.filter(around_method_p);
+  const afters = applicable_methods.filter(after_method_p);
+  afters.reverse();
+  return { methods: applicable_methods, primaries, befores, arounds, afters };
+}
+
+function apply_methods_partitioned(gf, args, cached) {
+  const { primaries, befores, arounds, afters } = cached;
+
+  const main_call = Object.defineProperty(
+    function () {
+      if (primaries.length === 0) {
+        throw new NoPrimaryMethodError(`No primary method for ${gf.name}`);
+      }
+
+      for (let before of befores) {
+        apply_method(before, args, []);
+      }
+
+      try {
+        return apply_method(primaries[0], args, primaries.slice(1));
+      } finally {
+        for (let after of afters) {
+          apply_method(after, args, []);
+        }
+      }
+    },
+    "name",
+    { value: `main_call_${gf.name}` }
+  );
+
+  if (arounds.length === 0) {
+    return main_call();
+  } else {
+    const wrapped_main_call = new WrappedMethod(main_call);
+    const next_methods = arounds.slice(1).concat([wrapped_main_call]);
+    return apply_method(arounds[0], args, next_methods);
+  }
+}
+
 function apply_generic_function(gf, args) {
+  const cached = getCachedMethods(gf, args);
+  if (cached !== null) {
+    if (cached === EMPTY_CACHE_SENTINEL) {
+      throw new NoApplicableMethodError(
+        `no applicable methods for gf ${gf.name} with args ${JSON.stringify(
+          args
+        )}`
+      );
+    }
+    return apply_methods_partitioned(gf, args, cached);
+  }
+
   let applicable_methods = compute_applicable_methods_using_classes(
     gf,
     required_portion(args)
   );
   if (applicable_methods.length === 0) {
+    storeCachedMethods(gf, args, EMPTY_CACHE_SENTINEL);
     throw new NoApplicableMethodError(
       `no applicable methods for gf ${gf.name} with args ${JSON.stringify(
         args
       )}`
     );
   } else {
-    return apply_methods(gf, args, applicable_methods);
+    const entry = partitionMethods(applicable_methods);
+    storeCachedMethods(gf, args, entry);
+    return apply_methods_partitioned(gf, args, entry);
   }
 }
 
@@ -280,6 +470,9 @@ Specializer.prototype = {
   super_of(_obj) {
     return false;
   },
+  cacheKey(_obj) {
+    return undefined;
+  },
 };
 
 function isSuperset(superset, subset) {
@@ -319,6 +512,17 @@ Shape.prototype = Object.assign(new Specializer(), {
       return isSuperset(spec.keys, this.keys);
     }
   },
+  cacheKey(obj) {
+    if (typeof obj !== "object" || obj === null) {
+      return undefined;
+    }
+    for (const key of this.keys) {
+      if (key instanceof Array) {
+        return undefined;
+      }
+    }
+    return Object.getOwnPropertyNames(obj).sort().join("\0");
+  },
 });
 
 export function Eql(val) {
@@ -336,6 +540,9 @@ Eql.prototype = Object.assign(new Specializer(), {
   },
   super_of() {
     return false;
+  },
+  cacheKey(obj) {
+    return obj;
   },
 });
 
