@@ -496,18 +496,21 @@ function buildTier4EMF(gf, partitioned) {
   }
 
   // Build around closure chain from tail to head.
-  // Semantics: call_next_method(newArgs) propagates newArgs to remaining
-  // arounds, but the primary chain always receives the original entry args
-  // (matching WrappedMethod.continuation() capture semantics).
+  // CLOS semantics: call_next_method(newArgs) propagates newArgs to ALL
+  // remaining methods — subsequent arounds, befores, primaries, and afters.
+  // call_next_method() with no args passes the current args unchanged.
   function buildAroundLevel(idx) {
     const body = arounds[idx].body;
 
     if (idx === arounds.length - 1) {
-      // Last around: call_next_method always invokes innerFn with original args
-      return (args, originalArgs) => {
+      // Last around: call_next_method goes to inner chain (befores+primaries+afters)
+      return args => {
         const ctx = {
-          call_next_method() {
-            return innerFn(originalArgs);
+          call_next_method(...cnm_args) {
+            if (cnm_args.length > 0) {
+              return innerFn(cnm_args);
+            }
+            return innerFn(args);
           },
           next_method_p: true,
         };
@@ -517,13 +520,13 @@ function buildTier4EMF(gf, partitioned) {
 
     const nextLevel = buildAroundLevel(idx + 1);
 
-    return (args, originalArgs) => {
+    return args => {
       const ctx = {
         call_next_method(...cnm_args) {
           if (cnm_args.length > 0) {
-            return nextLevel(cnm_args, originalArgs);
+            return nextLevel(cnm_args);
           }
-          return nextLevel(args, originalArgs);
+          return nextLevel(args);
         },
         next_method_p: true,
       };
@@ -532,7 +535,7 @@ function buildTier4EMF(gf, partitioned) {
   }
 
   const aroundChain = buildAroundLevel(0);
-  return args => aroundChain(args, args);
+  return aroundChain;
 }
 
 function buildEMF(gf, partitioned) {
