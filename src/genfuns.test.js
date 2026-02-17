@@ -791,7 +791,7 @@ describe("dispatch cache", () => {
     const gf = uut.defgeneric("mixed_shape", "a");
     gf.primary(
       [uut.Shape(["type", "heading"], "content")],
-      ({ type, content }) => content
+      ({ content }) => content
     );
     gf.primary([Object], _ => null);
     const fn = gf.fn;

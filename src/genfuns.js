@@ -520,7 +520,7 @@ function buildEMF(gf, partitioned) {
   const { primaries, befores, arounds, afters } = partitioned;
 
   if (primaries.length === 0) {
-    return args => {
+    return _args => {
       throw new NoPrimaryMethodError(`No primary method for ${gf.name}`);
     };
   }
@@ -536,40 +536,6 @@ function buildEMF(gf, partitioned) {
   }
 
   return buildTier3EMF(gf, primaryChain, befores, afters);
-}
-
-function apply_methods_partitioned(gf, args, cached) {
-  const { primaries, befores, arounds, afters } = cached;
-
-  const main_call = Object.defineProperty(
-    function () {
-      if (primaries.length === 0) {
-        throw new NoPrimaryMethodError(`No primary method for ${gf.name}`);
-      }
-
-      for (let before of befores) {
-        apply_method(before, args, []);
-      }
-
-      try {
-        return apply_method(primaries[0], args, primaries.slice(1));
-      } finally {
-        for (let after of afters) {
-          apply_method(after, args, []);
-        }
-      }
-    },
-    "name",
-    { value: `main_call_${gf.name}` }
-  );
-
-  if (arounds.length === 0) {
-    return main_call();
-  } else {
-    const wrapped_main_call = new WrappedMethod(main_call);
-    const next_methods = arounds.slice(1).concat([wrapped_main_call]);
-    return apply_method(arounds[0], args, next_methods);
-  }
 }
 
 function apply_generic_function(gf, args) {
