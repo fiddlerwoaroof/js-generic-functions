@@ -4,7 +4,10 @@
   "name": "js-generic-functions",
   "version": "2.2.1",
   "description": "A CLOS-inspired implementation of generic functions",
-  "repository": "https://github.com/fiddlerwoaroof/js-generic-functions",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fiddlerwoaroof/js-generic-functions.git"
+  },
   "homepage": "https://fiddlerwoaroof.github.io/js-generic-functions/",
   "main": "dist/genfuns.js",
   "devDependencies": {
