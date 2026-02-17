@@ -791,7 +791,9 @@ describe("dispatch cache", () => {
     // In CLOS, (call-next-method new-arg) from an :around method passes
     // new-arg to ALL remaining methods (other arounds, befores, primaries, afters).
     const gf = uut.defgeneric("clos_around_cnm", "a");
-    gf.primary([Object], function (a) { return `primary:${a}`; });
+    gf.primary([Object], function (a) {
+      return `primary:${a}`;
+    });
     gf.around([Object], function (a) {
       return this.call_next_method("replaced");
     });
@@ -805,7 +807,10 @@ describe("dispatch cache", () => {
     const log = [];
     const gf = uut.defgeneric("clos_around_ba", "a");
     gf.before([Object], a => log.push(`before:${a}`));
-    gf.primary([Object], a => { log.push(`primary:${a}`); return a; });
+    gf.primary([Object], a => {
+      log.push(`primary:${a}`);
+      return a;
+    });
     gf.after([Object], a => log.push(`after:${a}`));
     gf.around([Object], function (a) {
       return this.call_next_method("new");
