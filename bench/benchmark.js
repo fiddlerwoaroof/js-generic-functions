@@ -274,6 +274,25 @@ console.log("── 13. Repeated same-type calls (monomorphic) ──");
   }));
 }
 
+// 14. Value-constrained Shape dispatch (wine-inventory renderTokenG pattern)
+console.log("── 14. Value-constrained Shape dispatch ──");
+{
+  const renderToken = defgeneric("renderToken", "token");
+  renderToken
+    .primary([Shape(["type", "heading"])], function (t) { return "heading"; })
+    .primary([Shape(["type", "paragraph"])], function (t) { return "paragraph"; })
+    .primary([Shape(["type", "code_block"])], function (t) { return "code_block"; })
+    .primary([Shape(["type", "list"])], function (t) { return "list"; })
+    .primary([Shape(["type", "blockquote"])], function (t) { return "blockquote"; });
+  const fn = renderToken.fn;
+  const heading = { type: "heading", content: "Hello" };
+  const para = { type: "paragraph", content: "World" };
+  const code = { type: "code_block", content: "x=1" };
+  results.push(runBenchmark("{type:'heading'} -> value-constrained Shape", () => fn(heading)));
+  results.push(runBenchmark("{type:'paragraph'} -> value-constrained Shape", () => fn(para)));
+  results.push(runBenchmark("{type:'code_block'} -> value-constrained Shape", () => fn(code)));
+}
+
 // ─── Summary ────────────────────────────────────────────────
 
 console.log("=".repeat(70));

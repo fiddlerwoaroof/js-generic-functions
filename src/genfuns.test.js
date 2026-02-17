@@ -640,6 +640,144 @@ describe("dispatch cache", () => {
     expect(fn("x")).toEqual("matched");
   });
 
+  test("EMF Tier 1: single primary, cache hit", () => {
+    const gf = uut.defgeneric("emf_t1", "a");
+    gf.primary([Number], a => a * 2);
+    const fn = gf.fn;
+
+    expect(fn(5)).toEqual(10);
+    // Second call hits cache (EMF)
+    expect(fn(7)).toEqual(14);
+    // call_next_method should throw on leaf
+    const gf2 = uut.defgeneric("emf_t1b", "a");
+    gf2.primary([Number], function (a) { return this.call_next_method(); });
+    const fn2 = gf2.fn;
+    // First call (cache miss) throws
+    expect(() => fn2(1)).toThrow(uut.NoNextMethodError);
+    // Second call (cache hit) also throws
+    expect(() => fn2(2)).toThrow(uut.NoNextMethodError);
+  });
+
+  test("EMF Tier 2: multi-primary chain with call_next_method", () => {
+    const gf = uut.defgeneric("emf_t2", "a", "b");
+    gf.primary([String, String], function (a, b) { return `1${this.call_next_method()}`; });
+    gf.primary([String, Object], function (a, b) { return `2${this.call_next_method()}`; });
+    gf.primary([Object, String], function (a, b) { return `3${this.call_next_method()}`; });
+    gf.primary([Object, Object], function (a, b) { return `4`; });
+    const fn = gf.fn;
+
+    // First call (cache miss)
+    expect(fn("a", "b")).toEqual("1234");
+    // Second call (cache hit — EMF)
+    expect(fn("c", "d")).toEqual("1234");
+  });
+
+  test("EMF Tier 2: call_next_method with args", () => {
+    const gf = uut.defgeneric("emf_t2_args", "a");
+    gf.primary([Object], function (a) { return `base:${a}`; });
+    gf.primary([String], function (a) { return this.call_next_method("override"); });
+    const fn = gf.fn;
+
+    expect(fn("hello")).toEqual("base:override");
+    // Cache hit
+    expect(fn("world")).toEqual("base:override");
+  });
+
+  test("EMF Tier 3: befores + afters + primary", () => {
+    const log = [];
+    const gf = uut.defgeneric("emf_t3", "a");
+    gf.before([Object], a => log.push("before"));
+    gf.primary([Object], a => { log.push("primary"); return "result"; });
+    gf.after([Object], a => log.push("after"));
+    const fn = gf.fn;
+
+    expect(fn(1)).toEqual("result");
+    expect(log).toEqual(["before", "primary", "after"]);
+
+    log.length = 0;
+    // Cache hit
+    expect(fn(2)).toEqual("result");
+    expect(log).toEqual(["before", "primary", "after"]);
+  });
+
+  test("EMF Tier 4: around with call_next_method", () => {
+    const log = [];
+    const gf = uut.defgeneric("emf_t4", "a");
+    gf.around([Object], function (a) {
+      log.push("around");
+      return this.call_next_method(a);
+    });
+    gf.primary([Object], a => { log.push("primary"); return "done"; });
+    const fn = gf.fn;
+
+    expect(fn(1)).toEqual("done");
+    expect(log).toEqual(["around", "primary"]);
+
+    log.length = 0;
+    // Cache hit
+    expect(fn(2)).toEqual("done");
+    expect(log).toEqual(["around", "primary"]);
+  });
+
+  test("EMF reentrancy: recursive GF calls", () => {
+    const gf = uut.defgeneric("emf_reentrant", "a");
+    gf.primary([Number], function (a) {
+      if (a <= 0) return 0;
+      return a + gf.fn(a - 1);
+    });
+    gf.primary([String], function (a) { return a.length; });
+    const fn = gf.fn;
+
+    // Recursive numeric calls
+    expect(fn(3)).toEqual(6); // 3 + 2 + 1 + 0
+    expect(fn(3)).toEqual(6); // cache hit path
+
+    // Different type still works
+    expect(fn("hello")).toEqual(5);
+  });
+
+  test("value-constrained Shape caching", () => {
+    const gf = uut.defgeneric("vc_shape", "token");
+    gf.primary([uut.Shape(["type", "heading"])], t => "heading");
+    gf.primary([uut.Shape(["type", "paragraph"])], t => "paragraph");
+    gf.primary([Object], t => "other");
+    const fn = gf.fn;
+
+    expect(fn({ type: "heading" })).toEqual("heading");
+    expect(fn({ type: "paragraph" })).toEqual("paragraph");
+    expect(fn({ type: "code" })).toEqual("other");
+    // Cache hits
+    expect(fn({ type: "heading" })).toEqual("heading");
+    expect(fn({ type: "paragraph" })).toEqual("paragraph");
+    expect(fn({ type: "code" })).toEqual("other");
+  });
+
+  test("value-constrained Shape with non-object args", () => {
+    const gf = uut.defgeneric("vc_shape_mixed", "token");
+    gf.primary([uut.Shape(["type", "heading"])], t => "heading");
+    gf.primary([Object], t => "other");
+    const fn = gf.fn;
+
+    expect(fn({ type: "heading" })).toEqual("heading");
+    expect(fn(42)).toEqual("other");
+    // Cache hits
+    expect(fn({ type: "heading" })).toEqual("heading");
+    expect(fn(42)).toEqual("other");
+  });
+
+  test("mixed structural + value-constrained Shape degrades gracefully", () => {
+    const gf = uut.defgeneric("mixed_shape", "a");
+    gf.primary([uut.Shape(["type", "heading"], "content")], ({ type, content }) => content);
+    gf.primary([Object], _ => null);
+    const fn = gf.fn;
+
+    // Mixed keys (value-constrained + structural) — should still work correctly
+    expect(fn({ type: "heading", content: "Hello" })).toEqual("Hello");
+    expect(fn({ type: "paragraph", content: "World" })).toEqual(null);
+    // Repeated calls still correct
+    expect(fn({ type: "heading", content: "Again" })).toEqual("Again");
+  });
+
   test(".fn getter returns same reference", () => {
     const gf = uut.defgeneric("cached8", "a");
     gf.primary([Object], a => a);
