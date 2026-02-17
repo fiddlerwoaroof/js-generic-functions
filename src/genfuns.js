@@ -291,21 +291,28 @@ function buildKeyExtractors(gf) {
 
         // Collect constrained property names from each Shape — they must all constrain the same property name(s)
         const constrainedProps = customSpecs.map(shape =>
-          Array.from(shape.keys).map(k => k[0]).sort()
+          Array.from(shape.keys)
+            .map(k => k[0])
+            .sort()
         );
         const refProps = constrainedProps[0];
         const sameProps = constrainedProps.every(
-          props => props.length === refProps.length && props.every((p, i) => p === refProps[i])
+          props =>
+            props.length === refProps.length &&
+            props.every((p, i) => p === refProps[i])
         );
         if (!sameProps) return null;
 
-        const hasNonSpecializer = specsAtPos.some(s => !(s instanceof Specializer));
+        const hasNonSpecializer = specsAtPos.some(
+          s => !(s instanceof Specializer)
+        );
 
         if (refProps.length === 1) {
           const prop = refProps[0];
           if (hasNonSpecializer) {
             extractors.push(obj => {
-              if (typeof obj !== "object" || obj === null) return classBasedKey(obj);
+              if (typeof obj !== "object" || obj === null)
+                return classBasedKey(obj);
               return obj[prop];
             });
           } else {
@@ -317,7 +324,8 @@ function buildKeyExtractors(gf) {
         } else {
           if (hasNonSpecializer) {
             extractors.push(obj => {
-              if (typeof obj !== "object" || obj === null) return classBasedKey(obj);
+              if (typeof obj !== "object" || obj === null)
+                return classBasedKey(obj);
               return refProps.map(p => obj[p]).join("\0");
             });
           } else {
@@ -330,11 +338,14 @@ function buildKeyExtractors(gf) {
         continue;
       }
 
-      const hasNonSpecializer = specsAtPos.some(s => !(s instanceof Specializer));
+      const hasNonSpecializer = specsAtPos.some(
+        s => !(s instanceof Specializer)
+      );
       if (hasNonSpecializer) {
         // Mixed: class-based + Shape at same position — use combined key
         extractors.push(obj => {
-          if (typeof obj !== "object" || obj === null) return classBasedKey(obj);
+          if (typeof obj !== "object" || obj === null)
+            return classBasedKey(obj);
           return Object.getOwnPropertyNames(obj).sort().join("\0");
         });
         continue;
@@ -420,7 +431,7 @@ function buildPrimaryChain(gf, primaries) {
   if (primaries.length === 1) {
     // Tier 1: single primary, zero per-call allocation
     const body = primaries[0].body;
-    return (args) => body.call(NO_NEXT_METHOD_CTX, ...args);
+    return args => body.call(NO_NEXT_METHOD_CTX, ...args);
   }
 
   // Tier 2: multiple primaries — build recursive closure chain from tail to head
@@ -434,13 +445,13 @@ function buildPrimaryChain(gf, primaries) {
     const body = primaries[idx].body;
     if (idx === primaries.length - 1) {
       // Leaf: no next method
-      return (args) => body.call(NO_NEXT_METHOD_CTX, ...args);
+      return args => body.call(NO_NEXT_METHOD_CTX, ...args);
     }
 
     const nextLevel = buildLevel(idx + 1);
     const tailSlice = tailSlices[idx];
 
-    return (args) => {
+    return args => {
       const ctx = {
         call_next_method(...cnm_args) {
           if (cnm_args.length > 0) {
@@ -458,7 +469,7 @@ function buildPrimaryChain(gf, primaries) {
 }
 
 function buildTier3EMF(gf, primaryChain, befores, afters) {
-  return (args) => {
+  return args => {
     for (let i = 0; i < befores.length; i++) {
       befores[i].body.call(NO_NEXT_METHOD_CTX, ...args);
     }
@@ -475,41 +486,60 @@ function buildTier3EMF(gf, primaryChain, befores, afters) {
 function buildTier4EMF(gf, partitioned) {
   const { primaries, befores, arounds, afters } = partitioned;
 
-  // Pre-slice arounds at build time
-  const aroundsTail = arounds.slice(1);
+  // Pre-build the inner chain (befores + primaries + afters) using existing EMF tiers
+  const primaryChain = buildPrimaryChain(gf, primaries);
+  let innerFn;
+  if (befores.length === 0 && afters.length === 0) {
+    innerFn = primaryChain;
+  } else {
+    innerFn = buildTier3EMF(gf, primaryChain, befores, afters);
+  }
 
-  return (args) => {
-    const main_call = Object.defineProperty(
-      function () {
-        if (primaries.length === 0) {
-          throw new NoPrimaryMethodError(`No primary method for ${gf.name}`);
-        }
-        for (let i = 0; i < befores.length; i++) {
-          apply_method(befores[i], args, []);
-        }
-        try {
-          return apply_method(primaries[0], args, primaries.slice(1));
-        } finally {
-          for (let i = 0; i < afters.length; i++) {
-            apply_method(afters[i], args, []);
+  // Build around closure chain from tail to head.
+  // Semantics: call_next_method(newArgs) propagates newArgs to remaining
+  // arounds, but the primary chain always receives the original entry args
+  // (matching WrappedMethod.continuation() capture semantics).
+  function buildAroundLevel(idx) {
+    const body = arounds[idx].body;
+
+    if (idx === arounds.length - 1) {
+      // Last around: call_next_method always invokes innerFn with original args
+      return (args, originalArgs) => {
+        const ctx = {
+          call_next_method() {
+            return innerFn(originalArgs);
+          },
+          next_method_p: true,
+        };
+        return body.call(ctx, ...args);
+      };
+    }
+
+    const nextLevel = buildAroundLevel(idx + 1);
+
+    return (args, originalArgs) => {
+      const ctx = {
+        call_next_method(...cnm_args) {
+          if (cnm_args.length > 0) {
+            return nextLevel(cnm_args, originalArgs);
           }
-        }
-      },
-      "name",
-      { value: `main_call_${gf.name}` }
-    );
+          return nextLevel(args, originalArgs);
+        },
+        next_method_p: true,
+      };
+      return body.call(ctx, ...args);
+    };
+  }
 
-    const wrapped_main_call = new WrappedMethod(main_call);
-    const next_methods = aroundsTail.concat([wrapped_main_call]);
-    return apply_method(arounds[0], args, next_methods);
-  };
+  const aroundChain = buildAroundLevel(0);
+  return args => aroundChain(args, args);
 }
 
 function buildEMF(gf, partitioned) {
   const { primaries, befores, arounds, afters } = partitioned;
 
   if (primaries.length === 0) {
-    return (args) => {
+    return _args => {
       throw new NoPrimaryMethodError(`No primary method for ${gf.name}`);
     };
   }
@@ -525,40 +555,6 @@ function buildEMF(gf, partitioned) {
   }
 
   return buildTier3EMF(gf, primaryChain, befores, afters);
-}
-
-function apply_methods_partitioned(gf, args, cached) {
-  const { primaries, befores, arounds, afters } = cached;
-
-  const main_call = Object.defineProperty(
-    function () {
-      if (primaries.length === 0) {
-        throw new NoPrimaryMethodError(`No primary method for ${gf.name}`);
-      }
-
-      for (let before of befores) {
-        apply_method(before, args, []);
-      }
-
-      try {
-        return apply_method(primaries[0], args, primaries.slice(1));
-      } finally {
-        for (let after of afters) {
-          apply_method(after, args, []);
-        }
-      }
-    },
-    "name",
-    { value: `main_call_${gf.name}` }
-  );
-
-  if (arounds.length === 0) {
-    return main_call();
-  } else {
-    const wrapped_main_call = new WrappedMethod(main_call);
-    const next_methods = arounds.slice(1).concat([wrapped_main_call]);
-    return apply_method(arounds[0], args, next_methods);
-  }
 }
 
 function apply_generic_function(gf, args) {
