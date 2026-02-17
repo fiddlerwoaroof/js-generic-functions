@@ -787,6 +787,65 @@ describe("dispatch cache", () => {
     expect(log).toEqual(["around", "before", "primary", "after"]);
   });
 
+  test("CLOS semantics: around CNM with args propagates to primary", () => {
+    // In CLOS, (call-next-method new-arg) from an :around method passes
+    // new-arg to ALL remaining methods (other arounds, befores, primaries, afters).
+    const gf = uut.defgeneric("clos_around_cnm", "a");
+    gf.primary([Object], function (a) {
+      return `primary:${a}`;
+    });
+    gf.around([Object], function (a) {
+      return this.call_next_method("replaced");
+    });
+    const fn = gf.fn;
+
+    expect(fn("original")).toEqual("primary:replaced");
+    expect(fn("original")).toEqual("primary:replaced"); // cache hit
+  });
+
+  test("CLOS semantics: around CNM args reach befores and afters", () => {
+    const log = [];
+    const gf = uut.defgeneric("clos_around_ba", "a");
+    gf.before([Object], a => log.push(`before:${a}`));
+    gf.primary([Object], a => {
+      log.push(`primary:${a}`);
+      return a;
+    });
+    gf.after([Object], a => log.push(`after:${a}`));
+    gf.around([Object], function (a) {
+      return this.call_next_method("new");
+    });
+    const fn = gf.fn;
+
+    expect(fn("old")).toEqual("new");
+    expect(log).toEqual(["before:new", "primary:new", "after:new"]);
+
+    log.length = 0;
+    expect(fn("old")).toEqual("new");
+    expect(log).toEqual(["before:new", "primary:new", "after:new"]);
+  });
+
+  test("CLOS semantics: multi-around CNM args propagate through chain", () => {
+    const log = [];
+    const gf = uut.defgeneric("clos_multi_around", "a");
+    gf.around([Object], function (a) {
+      log.push(`outer:${a}`);
+      return this.call_next_method(a);
+    });
+    gf.around([Number], function (a) {
+      log.push(`inner:${a}`);
+      return this.call_next_method(a + 100);
+    });
+    gf.primary([Number], a => {
+      log.push(`primary:${a}`);
+      return a;
+    });
+    const fn = gf.fn;
+
+    expect(fn(5)).toEqual(105);
+    expect(log).toEqual(["inner:5", "outer:105", "primary:105"]);
+  });
+
   test("EMF reentrancy: recursive GF calls", () => {
     const gf = uut.defgeneric("emf_reentrant", "a");
     gf.primary([Number], function (a) {
