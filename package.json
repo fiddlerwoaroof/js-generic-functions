@@ -22,7 +22,7 @@
     "eslint-plugin-react": "^7.20.3",
     "globals": "^17.3.0",
     "jest": "^30.0.0",
-    "jest-junit": "^16.0.0",
+    "jest-junit": "^17.0.0",
     "npm": "^11.0.0",
     "prettier": "^3.0.0"
   },
