@@ -544,6 +544,419 @@ describe("Shape", () => {
   });
 });
 
+describe("dispatch cache", () => {
+  test("repeated same-type calls return correct results", () => {
+    const gf = uut.defgeneric("cached1", "a");
+    gf.primary([Number], a => "number");
+    gf.primary([String], a => "string");
+    const fn = gf.fn;
+
+    expect(fn(1)).toEqual("number");
+    expect(fn(2)).toEqual("number");
+    expect(fn("a")).toEqual("string");
+    expect(fn("b")).toEqual("string");
+    // These should hit the cache
+    expect(fn(3)).toEqual("number");
+    expect(fn("c")).toEqual("string");
+  });
+
+  test("cache invalidation on method addition", () => {
+    const gf = uut.defgeneric("cached2", "a");
+    gf.primary([Object], a => "object");
+    const fn = gf.fn;
+
+    expect(fn(1)).toEqual("object");
+
+    gf.primary([Number], a => "number");
+    expect(fn(1)).toEqual("number");
+  });
+
+  test("clearDispatchCache works", () => {
+    const gf = uut.defgeneric("cached3", "a");
+    gf.primary([Number], a => "number");
+    const fn = gf.fn;
+
+    expect(fn(1)).toEqual("number");
+    gf.clearDispatchCache();
+    expect(fn(1)).toEqual("number");
+  });
+
+  test("Eql specializer caching", () => {
+    const gf = uut.defgeneric("cached4", "a");
+    gf.primary([uut.Eql(42)], a => "forty-two");
+    gf.primary([uut.Eql(99)], a => "ninety-nine");
+    const fn = gf.fn;
+
+    expect(fn(42)).toEqual("forty-two");
+    expect(fn(99)).toEqual("ninety-nine");
+    expect(fn(42)).toEqual("forty-two");
+  });
+
+  test("Shape specializer caching (no value constraints)", () => {
+    const gf = uut.defgeneric("cached5", "a");
+    gf.primary([uut.Shape("x", "y")], ({ x, y }) => `${x}:${y}`);
+    gf.primary([uut.Shape("x")], ({ x }) => x);
+    gf.primary([Object], _ => "other");
+    const fn = gf.fn;
+
+    expect(fn({ x: "Alice", y: 30 })).toEqual("Alice:30");
+    expect(fn({ x: "Bob" })).toEqual("Bob");
+    expect(fn(42)).toEqual("other");
+    // cache hits
+    expect(fn({ x: "Carol", y: 25 })).toEqual("Carol:25");
+    expect(fn({ x: "Dave" })).toEqual("Dave");
+  });
+
+  test("value-constrained Shape degrades gracefully", () => {
+    const gf = uut.defgeneric("cached6", "a");
+    gf.primary([uut.Shape(["a", 1], "b")], ({ a, b }) => a + b);
+    gf.primary([Object], _ => null);
+    const fn = gf.fn;
+
+    expect(fn({ a: 1, b: 3 })).toEqual(4);
+    expect(fn({ a: 2, b: 3 })).toEqual(null);
+  });
+
+  test("custom Specializer without cacheKey override degrades gracefully", () => {
+    function NoCacheSpec(val) {
+      this.val = val;
+    }
+    NoCacheSpec.prototype = Object.assign(new uut.Specializer(), {
+      matches(other) {
+        return this.val === other;
+      },
+      super_of() {
+        return false;
+      },
+    });
+
+    const gf = uut.defgeneric("cached7", "a");
+    gf.primary([new NoCacheSpec("x")], a => "matched");
+    gf.primary([Object], a => "fallback");
+    const fn = gf.fn;
+
+    expect(fn("x")).toEqual("matched");
+    expect(fn("y")).toEqual("fallback");
+    expect(fn("x")).toEqual("matched");
+  });
+
+  test("EMF Tier 1: single primary, cache hit", () => {
+    const gf = uut.defgeneric("emf_t1", "a");
+    gf.primary([Number], a => a * 2);
+    const fn = gf.fn;
+
+    expect(fn(5)).toEqual(10);
+    // Second call hits cache (EMF)
+    expect(fn(7)).toEqual(14);
+    // call_next_method should throw on leaf
+    const gf2 = uut.defgeneric("emf_t1b", "a");
+    gf2.primary([Number], function (a) {
+      return this.call_next_method();
+    });
+    const fn2 = gf2.fn;
+    // First call (cache miss) throws
+    expect(() => fn2(1)).toThrow(uut.NoNextMethodError);
+    // Second call (cache hit) also throws
+    expect(() => fn2(2)).toThrow(uut.NoNextMethodError);
+  });
+
+  test("EMF Tier 2: multi-primary chain with call_next_method", () => {
+    const gf = uut.defgeneric("emf_t2", "a", "b");
+    gf.primary([String, String], function (a, b) {
+      return `1${this.call_next_method()}`;
+    });
+    gf.primary([String, Object], function (a, b) {
+      return `2${this.call_next_method()}`;
+    });
+    gf.primary([Object, String], function (a, b) {
+      return `3${this.call_next_method()}`;
+    });
+    gf.primary([Object, Object], function (a, b) {
+      return `4`;
+    });
+    const fn = gf.fn;
+
+    // First call (cache miss)
+    expect(fn("a", "b")).toEqual("1234");
+    // Second call (cache hit — EMF)
+    expect(fn("c", "d")).toEqual("1234");
+  });
+
+  test("EMF Tier 2: call_next_method with args", () => {
+    const gf = uut.defgeneric("emf_t2_args", "a");
+    gf.primary([Object], function (a) {
+      return `base:${a}`;
+    });
+    gf.primary([String], function (a) {
+      return this.call_next_method("override");
+    });
+    const fn = gf.fn;
+
+    expect(fn("hello")).toEqual("base:override");
+    // Cache hit
+    expect(fn("world")).toEqual("base:override");
+  });
+
+  test("EMF Tier 3: befores + afters + primary", () => {
+    const log = [];
+    const gf = uut.defgeneric("emf_t3", "a");
+    gf.before([Object], a => log.push("before"));
+    gf.primary([Object], a => {
+      log.push("primary");
+      return "result";
+    });
+    gf.after([Object], a => log.push("after"));
+    const fn = gf.fn;
+
+    expect(fn(1)).toEqual("result");
+    expect(log).toEqual(["before", "primary", "after"]);
+
+    log.length = 0;
+    // Cache hit
+    expect(fn(2)).toEqual("result");
+    expect(log).toEqual(["before", "primary", "after"]);
+  });
+
+  test("EMF Tier 4: around with call_next_method", () => {
+    const log = [];
+    const gf = uut.defgeneric("emf_t4", "a");
+    gf.around([Object], function (a) {
+      log.push("around");
+      return this.call_next_method(a);
+    });
+    gf.primary([Object], a => {
+      log.push("primary");
+      return "done";
+    });
+    const fn = gf.fn;
+
+    expect(fn(1)).toEqual("done");
+    expect(log).toEqual(["around", "primary"]);
+
+    log.length = 0;
+    // Cache hit
+    expect(fn(2)).toEqual("done");
+    expect(log).toEqual(["around", "primary"]);
+  });
+
+  test("EMF Tier 4: multiple arounds chain correctly", () => {
+    const log = [];
+    const gf = uut.defgeneric("emf_t4_multi", "a");
+    gf.around([Object], function (a) {
+      log.push(`outer:${a}`);
+      return this.call_next_method(a);
+    });
+    gf.around([Number], function (a) {
+      log.push(`inner:${a}`);
+      return this.call_next_method(a);
+    });
+    gf.primary([Number], a => {
+      log.push(`primary:${a}`);
+      return a * 2;
+    });
+    const fn = gf.fn;
+
+    expect(fn(5)).toEqual(10);
+    expect(log).toEqual(["inner:5", "outer:5", "primary:5"]);
+
+    log.length = 0;
+    expect(fn(7)).toEqual(14);
+    expect(log).toEqual(["inner:7", "outer:7", "primary:7"]);
+  });
+
+  test("EMF Tier 4: around with befores and afters", () => {
+    const log = [];
+    const gf = uut.defgeneric("emf_t4_combo", "a");
+    gf.before([Object], a => log.push("before"));
+    gf.around([Object], function (a) {
+      log.push("around");
+      return this.call_next_method(a);
+    });
+    gf.primary([Object], a => {
+      log.push("primary");
+      return "ok";
+    });
+    gf.after([Object], a => log.push("after"));
+    const fn = gf.fn;
+
+    expect(fn(1)).toEqual("ok");
+    expect(log).toEqual(["around", "before", "primary", "after"]);
+
+    log.length = 0;
+    expect(fn(2)).toEqual("ok");
+    expect(log).toEqual(["around", "before", "primary", "after"]);
+  });
+
+  test("CLOS semantics: around CNM with args propagates to primary", () => {
+    // In CLOS, (call-next-method new-arg) from an :around method passes
+    // new-arg to ALL remaining methods (other arounds, befores, primaries, afters).
+    const gf = uut.defgeneric("clos_around_cnm", "a");
+    gf.primary([Object], function (a) {
+      return `primary:${a}`;
+    });
+    gf.around([Object], function (a) {
+      return this.call_next_method("replaced");
+    });
+    const fn = gf.fn;
+
+    expect(fn("original")).toEqual("primary:replaced");
+    expect(fn("original")).toEqual("primary:replaced"); // cache hit
+  });
+
+  test("CLOS semantics: around CNM args reach befores and afters", () => {
+    const log = [];
+    const gf = uut.defgeneric("clos_around_ba", "a");
+    gf.before([Object], a => log.push(`before:${a}`));
+    gf.primary([Object], a => {
+      log.push(`primary:${a}`);
+      return a;
+    });
+    gf.after([Object], a => log.push(`after:${a}`));
+    gf.around([Object], function (a) {
+      return this.call_next_method("new");
+    });
+    const fn = gf.fn;
+
+    expect(fn("old")).toEqual("new");
+    expect(log).toEqual(["before:new", "primary:new", "after:new"]);
+
+    log.length = 0;
+    expect(fn("old")).toEqual("new");
+    expect(log).toEqual(["before:new", "primary:new", "after:new"]);
+  });
+
+  test("CLOS semantics: multi-around CNM args propagate through chain", () => {
+    const log = [];
+    const gf = uut.defgeneric("clos_multi_around", "a");
+    gf.around([Object], function (a) {
+      log.push(`outer:${a}`);
+      return this.call_next_method(a);
+    });
+    gf.around([Number], function (a) {
+      log.push(`inner:${a}`);
+      return this.call_next_method(a + 100);
+    });
+    gf.primary([Number], a => {
+      log.push(`primary:${a}`);
+      return a;
+    });
+    const fn = gf.fn;
+
+    expect(fn(5)).toEqual(105);
+    expect(log).toEqual(["inner:5", "outer:105", "primary:105"]);
+  });
+
+  test("EMF reentrancy: recursive GF calls", () => {
+    const gf = uut.defgeneric("emf_reentrant", "a");
+    gf.primary([Number], function (a) {
+      if (a <= 0) return 0;
+      return a + gf.fn(a - 1);
+    });
+    gf.primary([String], function (a) {
+      return a.length;
+    });
+    const fn = gf.fn;
+
+    // Recursive numeric calls
+    expect(fn(3)).toEqual(6); // 3 + 2 + 1 + 0
+    expect(fn(3)).toEqual(6); // cache hit path
+
+    // Different type still works
+    expect(fn("hello")).toEqual(5);
+  });
+
+  test("value-constrained Shape caching", () => {
+    const gf = uut.defgeneric("vc_shape", "token");
+    gf.primary([uut.Shape(["type", "heading"])], t => "heading");
+    gf.primary([uut.Shape(["type", "paragraph"])], t => "paragraph");
+    gf.primary([Object], t => "other");
+    const fn = gf.fn;
+
+    expect(fn({ type: "heading" })).toEqual("heading");
+    expect(fn({ type: "paragraph" })).toEqual("paragraph");
+    expect(fn({ type: "code" })).toEqual("other");
+    // Cache hits
+    expect(fn({ type: "heading" })).toEqual("heading");
+    expect(fn({ type: "paragraph" })).toEqual("paragraph");
+    expect(fn({ type: "code" })).toEqual("other");
+  });
+
+  test("value-constrained Shape with non-object args", () => {
+    const gf = uut.defgeneric("vc_shape_mixed", "token");
+    gf.primary([uut.Shape(["type", "heading"])], t => "heading");
+    gf.primary([Object], t => "other");
+    const fn = gf.fn;
+
+    expect(fn({ type: "heading" })).toEqual("heading");
+    expect(fn(42)).toEqual("other");
+    // Cache hits
+    expect(fn({ type: "heading" })).toEqual("heading");
+    expect(fn(42)).toEqual("other");
+  });
+
+  test("mixed structural + value-constrained Shape degrades gracefully", () => {
+    const gf = uut.defgeneric("mixed_shape", "a");
+    gf.primary(
+      [uut.Shape(["type", "heading"], "content")],
+      ({ content }) => content
+    );
+    gf.primary([Object], _ => null);
+    const fn = gf.fn;
+
+    // Mixed keys (value-constrained + structural) — should still work correctly
+    expect(fn({ type: "heading", content: "Hello" })).toEqual("Hello");
+    expect(fn({ type: "paragraph", content: "World" })).toEqual(null);
+    // Repeated calls still correct
+    expect(fn({ type: "heading", content: "Again" })).toEqual("Again");
+  });
+
+  test(".fn getter returns same reference", () => {
+    const gf = uut.defgeneric("cached8", "a");
+    gf.primary([Object], a => a);
+    expect(gf.fn).toBe(gf.fn);
+  });
+
+  test("before/after/around methods work with cached partitioned data", () => {
+    const log = [];
+    const gf = uut.defgeneric("cached9", "a");
+    gf.before([Object], a => log.push("before"));
+    gf.primary([Object], a => {
+      log.push("primary");
+      return "result";
+    });
+    gf.after([Object], a => log.push("after"));
+    gf.around([Object], function (a) {
+      log.push("around-start");
+      const r = this.call_next_method(a);
+      log.push("around-end");
+      return r;
+    });
+    const fn = gf.fn;
+
+    // First call (cache miss)
+    expect(fn(1)).toEqual("result");
+    expect(log).toEqual([
+      "around-start",
+      "before",
+      "primary",
+      "after",
+      "around-end",
+    ]);
+
+    log.length = 0;
+
+    // Second call (cache hit)
+    expect(fn(2)).toEqual("result");
+    expect(log).toEqual([
+      "around-start",
+      "before",
+      "primary",
+      "after",
+      "around-end",
+    ]);
+  });
+});
+
 function makeCustomSpecializer() {
   function AEql(val) {
     this.val = val;

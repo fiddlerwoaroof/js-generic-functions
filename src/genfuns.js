@@ -16,6 +16,13 @@ export const NoNextMethodError = SubTypeError("NoNextMethodError");
 export const NoApplicableMethodError = SubTypeError("NoApplicableMethodError");
 export const NoPrimaryMethodError = SubTypeError("NoPrimaryMethodError");
 
+const NO_NEXT_METHOD_CTX = Object.freeze({
+  call_next_method() {
+    throw new NoNextMethodError("no next method");
+  },
+  next_method_p: false,
+});
+
 export class UnhandledObjType extends Error {
   /**
    * @param {string} objType
@@ -114,15 +121,21 @@ let genfun_prototype = {
     return this.method([around_qualifier], specializers, body);
   },
   get fn() {
+    if (this._cachedFn !== null) return this._cachedFn;
     const gf = this;
-    const lambda = function () {
-      return apply_generic_function(gf, [].slice.call(arguments));
-    }.bind(gf);
-    return Object.defineProperties(lambda, {
+    const lambda = function (...args) {
+      return apply_generic_function(gf, args);
+    };
+    this._cachedFn = Object.defineProperties(lambda, {
       name: { value: gf.name },
       lambda_list: { value: gf.lambda_list },
       gf: { value: gf },
     });
+    return this._cachedFn;
+  },
+  clearDispatchCache() {
+    this._dispatchCache = null;
+    this._keyExtractors = undefined;
   },
 };
 
@@ -140,6 +153,9 @@ function GenericFunction(name, lambda_list) {
   this.name = name;
   this.lambda_list = lambda_list;
   this.methods = [];
+  this._dispatchCache = null;
+  this._keyExtractors = undefined;
+  this._cachedFn = null;
 }
 GenericFunction.prototype = Object.create(genfun_prototype);
 
@@ -212,6 +228,8 @@ function ensure_method(gf /*, lambda_list, qualifiers, specializers, body*/) {
 function add_method(gf, method) {
   method.generic_function = gf;
   gf.methods.push(method);
+  gf._dispatchCache = null;
+  gf._keyExtractors = undefined;
   return method;
 }
 
@@ -221,19 +239,356 @@ function add_method(gf, method) {
 
 const required_portion = x => x;
 
+function classBasedKey(obj) {
+  if (obj === null) return null;
+  if (obj === undefined) return undefined;
+  const t = typeof obj;
+  if (t === "number") return Number;
+  if (t === "string") return String;
+  if (t === "boolean") return Boolean;
+  if (t === "symbol") return Symbol;
+  if (t === "bigint") return BigInt;
+  return obj.constructor;
+}
+
+function buildKeyExtractors(gf) {
+  const methods = gf.methods;
+  if (methods.length === 0) return null;
+
+  const maxArgs = Math.max(...methods.map(m => m.specializers.length));
+  const extractors = [];
+
+  for (let pos = 0; pos < maxArgs; pos++) {
+    const specsAtPos = methods
+      .filter(m => pos < m.specializers.length)
+      .map(m => m.specializers[pos]);
+
+    const customSpecs = specsAtPos.filter(s => s instanceof Specializer);
+
+    if (customSpecs.length === 0) {
+      extractors.push(classBasedKey);
+      continue;
+    }
+
+    const allEql = customSpecs.every(s => s instanceof Eql);
+    if (allEql && customSpecs.length === specsAtPos.length) {
+      extractors.push(arg => arg);
+      continue;
+    }
+
+    const allShape = customSpecs.every(s => s instanceof Shape);
+    if (allShape) {
+      const hasValueConstraints = customSpecs.some(shape =>
+        Array.from(shape.keys).some(k => k instanceof Array)
+      );
+
+      if (hasValueConstraints) {
+        // Check if ALL keys across ALL Shapes are value-constrained
+        const allValueConstrained = customSpecs.every(shape =>
+          Array.from(shape.keys).every(k => k instanceof Array)
+        );
+        if (!allValueConstrained) return null;
+
+        // Collect constrained property names from each Shape — they must all constrain the same property name(s)
+        const constrainedProps = customSpecs.map(shape =>
+          Array.from(shape.keys)
+            .map(k => k[0])
+            .sort()
+        );
+        const refProps = constrainedProps[0];
+        const sameProps = constrainedProps.every(
+          props =>
+            props.length === refProps.length &&
+            props.every((p, i) => p === refProps[i])
+        );
+        if (!sameProps) return null;
+
+        const hasNonSpecializer = specsAtPos.some(
+          s => !(s instanceof Specializer)
+        );
+
+        if (refProps.length === 1) {
+          const prop = refProps[0];
+          if (hasNonSpecializer) {
+            extractors.push(obj => {
+              if (typeof obj !== "object" || obj === null)
+                return classBasedKey(obj);
+              return obj[prop];
+            });
+          } else {
+            extractors.push(obj => {
+              if (typeof obj !== "object" || obj === null) return undefined;
+              return obj[prop];
+            });
+          }
+        } else {
+          if (hasNonSpecializer) {
+            extractors.push(obj => {
+              if (typeof obj !== "object" || obj === null)
+                return classBasedKey(obj);
+              return refProps.map(p => obj[p]).join("\0");
+            });
+          } else {
+            extractors.push(obj => {
+              if (typeof obj !== "object" || obj === null) return undefined;
+              return refProps.map(p => obj[p]).join("\0");
+            });
+          }
+        }
+        continue;
+      }
+
+      const hasNonSpecializer = specsAtPos.some(
+        s => !(s instanceof Specializer)
+      );
+      if (hasNonSpecializer) {
+        // Mixed: class-based + Shape at same position — use combined key
+        extractors.push(obj => {
+          if (typeof obj !== "object" || obj === null)
+            return classBasedKey(obj);
+          return Object.getOwnPropertyNames(obj).sort().join("\0");
+        });
+        continue;
+      }
+
+      extractors.push(obj => {
+        if (typeof obj !== "object" || obj === null) return undefined;
+        return Object.getOwnPropertyNames(obj).sort().join("\0");
+      });
+      continue;
+    }
+
+    // Check if any custom specializer lacks a cacheKey override
+    for (const spec of customSpecs) {
+      if (spec.cacheKey === Specializer.prototype.cacheKey) {
+        return null;
+      }
+    }
+
+    // Mixed specializer subtypes at this position — disable caching
+    return null;
+  }
+
+  return extractors;
+}
+
+const EMPTY_CACHE_SENTINEL = Symbol("EMPTY_CACHE_SENTINEL");
+
+function getCachedMethods(gf, args) {
+  if (gf._keyExtractors === undefined) {
+    gf._keyExtractors = buildKeyExtractors(gf);
+  }
+  if (gf._keyExtractors === null) return null;
+  if (gf._dispatchCache === null) return null;
+
+  let node = gf._dispatchCache;
+  for (let i = 0; i < gf._keyExtractors.length; i++) {
+    const key = gf._keyExtractors[i](args[i]);
+    if (key === undefined) return null;
+    node = node.get(key);
+    if (node === undefined) return null;
+  }
+  return node;
+}
+
+function storeCachedMethods(gf, args, entry) {
+  if (gf._keyExtractors === undefined) {
+    gf._keyExtractors = buildKeyExtractors(gf);
+  }
+  if (gf._keyExtractors === null) return;
+
+  if (gf._dispatchCache === null) {
+    gf._dispatchCache = new Map();
+  }
+
+  let node = gf._dispatchCache;
+  const lastIdx = gf._keyExtractors.length - 1;
+  for (let i = 0; i < lastIdx; i++) {
+    const key = gf._keyExtractors[i](args[i]);
+    if (key === undefined) return;
+    let next = node.get(key);
+    if (next === undefined) {
+      next = new Map();
+      node.set(key, next);
+    }
+    node = next;
+  }
+  const lastKey = gf._keyExtractors[lastIdx](args[lastIdx]);
+  if (lastKey === undefined) return;
+  node.set(lastKey, entry);
+}
+
+function partitionMethods(applicable_methods) {
+  const primaries = applicable_methods.filter(primary_method_p);
+  const befores = applicable_methods.filter(before_method_p);
+  const arounds = applicable_methods.filter(around_method_p);
+  const afters = applicable_methods.filter(after_method_p);
+  afters.reverse();
+  return { methods: applicable_methods, primaries, befores, arounds, afters };
+}
+
+function buildPrimaryChain(gf, primaries) {
+  if (primaries.length === 1) {
+    // Tier 1: single primary, zero per-call allocation
+    const body = primaries[0].body;
+    return args => body.call(NO_NEXT_METHOD_CTX, ...args);
+  }
+
+  // Tier 2: multiple primaries — build recursive closure chain from tail to head
+  // Pre-compute tail slices at build time
+  const tailSlices = [];
+  for (let i = 0; i < primaries.length; i++) {
+    tailSlices[i] = primaries.slice(i + 1);
+  }
+
+  function buildLevel(idx) {
+    const body = primaries[idx].body;
+    if (idx === primaries.length - 1) {
+      // Leaf: no next method
+      return args => body.call(NO_NEXT_METHOD_CTX, ...args);
+    }
+
+    const nextLevel = buildLevel(idx + 1);
+    const tailSlice = tailSlices[idx];
+
+    return args => {
+      const ctx = {
+        call_next_method(...cnm_args) {
+          if (cnm_args.length > 0) {
+            return apply_methods(gf, cnm_args, tailSlice);
+          }
+          return nextLevel(args);
+        },
+        next_method_p: true,
+      };
+      return body.call(ctx, ...args);
+    };
+  }
+
+  return buildLevel(0);
+}
+
+function buildTier3EMF(gf, primaryChain, befores, afters) {
+  return args => {
+    for (let i = 0; i < befores.length; i++) {
+      befores[i].body.call(NO_NEXT_METHOD_CTX, ...args);
+    }
+    try {
+      return primaryChain(args);
+    } finally {
+      for (let i = 0; i < afters.length; i++) {
+        afters[i].body.call(NO_NEXT_METHOD_CTX, ...args);
+      }
+    }
+  };
+}
+
+function buildTier4EMF(gf, partitioned) {
+  const { primaries, befores, arounds, afters } = partitioned;
+
+  // Pre-build the inner chain (befores + primaries + afters) using existing EMF tiers
+  const primaryChain = buildPrimaryChain(gf, primaries);
+  let innerFn;
+  if (befores.length === 0 && afters.length === 0) {
+    innerFn = primaryChain;
+  } else {
+    innerFn = buildTier3EMF(gf, primaryChain, befores, afters);
+  }
+
+  // Build around closure chain from tail to head.
+  // CLOS semantics: call_next_method(newArgs) propagates newArgs to ALL
+  // remaining methods — subsequent arounds, befores, primaries, and afters.
+  // call_next_method() with no args passes the current args unchanged.
+  function buildAroundLevel(idx) {
+    const body = arounds[idx].body;
+
+    if (idx === arounds.length - 1) {
+      // Last around: call_next_method goes to inner chain (befores+primaries+afters)
+      return args => {
+        const ctx = {
+          call_next_method(...cnm_args) {
+            if (cnm_args.length > 0) {
+              return innerFn(cnm_args);
+            }
+            return innerFn(args);
+          },
+          next_method_p: true,
+        };
+        return body.call(ctx, ...args);
+      };
+    }
+
+    const nextLevel = buildAroundLevel(idx + 1);
+
+    return args => {
+      const ctx = {
+        call_next_method(...cnm_args) {
+          if (cnm_args.length > 0) {
+            return nextLevel(cnm_args);
+          }
+          return nextLevel(args);
+        },
+        next_method_p: true,
+      };
+      return body.call(ctx, ...args);
+    };
+  }
+
+  const aroundChain = buildAroundLevel(0);
+  return aroundChain;
+}
+
+function buildEMF(gf, partitioned) {
+  const { primaries, befores, arounds, afters } = partitioned;
+
+  if (primaries.length === 0) {
+    return _args => {
+      throw new NoPrimaryMethodError(`No primary method for ${gf.name}`);
+    };
+  }
+
+  if (arounds.length > 0) {
+    return buildTier4EMF(gf, partitioned);
+  }
+
+  const primaryChain = buildPrimaryChain(gf, primaries);
+
+  if (befores.length === 0 && afters.length === 0) {
+    return primaryChain;
+  }
+
+  return buildTier3EMF(gf, primaryChain, befores, afters);
+}
+
 function apply_generic_function(gf, args) {
+  const cached = getCachedMethods(gf, args);
+  if (cached !== null) {
+    if (cached === EMPTY_CACHE_SENTINEL) {
+      throw new NoApplicableMethodError(
+        `no applicable methods for gf ${gf.name} with args ${JSON.stringify(
+          args
+        )}`
+      );
+    }
+    return cached(args);
+  }
+
   let applicable_methods = compute_applicable_methods_using_classes(
     gf,
     required_portion(args)
   );
   if (applicable_methods.length === 0) {
+    storeCachedMethods(gf, args, EMPTY_CACHE_SENTINEL);
     throw new NoApplicableMethodError(
       `no applicable methods for gf ${gf.name} with args ${JSON.stringify(
         args
       )}`
     );
   } else {
-    return apply_methods(gf, args, applicable_methods);
+    const partitioned = partitionMethods(applicable_methods);
+    const emf = buildEMF(gf, partitioned);
+    storeCachedMethods(gf, args, emf);
+    return emf(args);
   }
 }
 
@@ -280,6 +635,9 @@ Specializer.prototype = {
   super_of(_obj) {
     return false;
   },
+  cacheKey(_obj) {
+    return undefined;
+  },
 };
 
 function isSuperset(superset, subset) {
@@ -319,6 +677,17 @@ Shape.prototype = Object.assign(new Specializer(), {
       return isSuperset(spec.keys, this.keys);
     }
   },
+  cacheKey(obj) {
+    if (typeof obj !== "object" || obj === null) {
+      return undefined;
+    }
+    for (const key of this.keys) {
+      if (key instanceof Array) {
+        return undefined;
+      }
+    }
+    return Object.getOwnPropertyNames(obj).sort().join("\0");
+  },
 });
 
 export function Eql(val) {
@@ -336,6 +705,9 @@ Eql.prototype = Object.assign(new Specializer(), {
   },
   super_of() {
     return false;
+  },
+  cacheKey(obj) {
+    return obj;
   },
 });
 
@@ -539,6 +911,6 @@ function apply_method(method, args, next_methods) {
   };
 
   return method.body
-    ? method.body.bind(method_context)(...args)
+    ? method.body.call(method_context, ...args)
     : method.continuation();
 }
