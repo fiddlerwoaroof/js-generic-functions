@@ -11,7 +11,7 @@
   "homepage": "https://fiddlerwoaroof.github.io/js-generic-functions/",
   "main": "dist/genfuns.js",
   "devDependencies": {
-    "@babel/cli": "^7.10.4",
+    "@babel/cli": "^8.0.5",
     "@babel/core": "^7.10.4",
     "@babel/plugin-transform-object-rest-spread": "^8.0.1",
     "@babel/preset-env": "^8.0.5",
